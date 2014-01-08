@@ -10,7 +10,6 @@ Build-Depends:
  cmake,
  debhelper (>= 7.0.50),
  devscripts,
- dpatch,
  fakeroot,
  libaio-dev,
  libncurses5-dev,
@@ -53,6 +52,7 @@ Description: Percona Server database common files (e.g. /etc/mysql/my.cnf)
 Package: percona-xtradb-cluster-test-5.5
 Architecture: all
 Depends:
+ ${misc:Depends},
  percona-xtradb-cluster-client-5.5 (>= ${source:Version}),
  percona-xtradb-cluster-server-5.5 (>= ${source:Version})
 Provides: mysql-test
