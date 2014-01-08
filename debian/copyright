@@ -51,7 +51,7 @@ Copyright:
 Patch show_temp
 
 Copyright:
-	
+
 	COPYING.show_temp_51
 
 == innotop ==
@@ -83,4 +83,3 @@ The upstream author explained here: http://bugs.gentoo.org/show_bug.cgi?id=14760
 that these licenses also apply to the following files:
 - innotop.html
 - InnoDBParser.pm
-
