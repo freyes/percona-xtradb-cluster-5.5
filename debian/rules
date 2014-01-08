@@ -54,7 +54,7 @@ ifeq ($(SKIP_DEBUG_BINARY),)
 endif
 
 	cd release && make $(MAKE_JFLAG)
-	
+
 	# Build HandlerSocket
 	echo "Configuring HandlerSocket"
 	cd storage/HandlerSocket-Plugin-for-MySQL && \
@@ -66,14 +66,14 @@ endif
 			--libdir=$(prefix)/lib \
 			--prefix=$(prefix) && \
 	make $(MAKE_JFLAG)
-	
+
 	# Build UDF
 	cd UDF && \
 	CXX="$${UDF_CXX:-g++}" CXXFLAGS="$(CXXFLAGS) -I$(CURDIR)/release/include" \
 		./configure --includedir=$(CURDIR)/include \
 			--libdir=$(prefix)/lib/mysql/plugin && \
 	make $(MAKE_JFLAG)
-	
+
 build:
 	dh build
 
