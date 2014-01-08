@@ -2,8 +2,6 @@
 
 #export DH_VERBOSE=1
 
-include /usr/share/dpatch/dpatch.make
-
 CMAKE=cmake
 TMP=$(CURDIR)/debian/tmp/
 
@@ -14,13 +12,10 @@ compilation_comment_release="Percona XtraDB Cluster (GPL), Release $(major_versi
 server_suffix="-$(major_version).$(minor_version)"
 prefix="/usr"
 
-clean: clean-patched unpatch
+%:
+	dh $@
 
-clean-patched:
-	dh clean
-	rm -rf CMakeFiles
-
-override_dh_auto_configure: patch
+override_dh_auto_configure:
 ifeq ($(SKIP_DEBUG_BINARY),)
 	# Make a debug binary
 	mkdir debug
@@ -104,4 +99,3 @@ override_dh_installinit:
 
 override_dh_strip:
 	dh_strip --dbg-package=percona-xtradb-cluster-5.5-dbg
-
