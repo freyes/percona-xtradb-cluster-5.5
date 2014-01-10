@@ -109,7 +109,6 @@ Architecture: any
 Suggests: netcat-openbsd, pv, qpress, tinyca
 Depends:
  adduser (>= 3.40),
- bash,
  debconf,
  iproute,
  libdbd-mysql-perl,
@@ -125,7 +124,6 @@ Depends:
  python:any,
  rsync,
  socat,
- tar,
  ${misc:Depends},
  ${shlibs:Depends}
 Conflicts: mysql-server-core-5.5, mariadb-server-core-5.5

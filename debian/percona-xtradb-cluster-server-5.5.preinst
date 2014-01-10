@@ -52,8 +52,8 @@ this_version=5.5
 
 # Check kernel version
 if dpkg --compare-versions `uname -r` lt 2.6; then
-  /bin/echo -e "\nPROBLEM: MySQL-5.x is currently incompatible with kernel 2.4. Aborting.";
-  /bin/echo -e "See http://bugs.debian.org/416841 for more information.\n"
+  echo -e "\nPROBLEM: MySQL-5.x is currently incompatible with kernel 2.4. Aborting.";
+  echo -e "See http://bugs.debian.org/416841 for more information.\n"
   exit 1
 fi
 
