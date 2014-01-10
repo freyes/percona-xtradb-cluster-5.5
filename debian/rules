@@ -1,6 +1,7 @@
 #!/usr/bin/make -f
 
-#export DH_VERBOSE=1
+export DH_VERBOSE=1
+export DEB_BUILD_HARDENING=1
 
 CMAKE=cmake
 TMP=$(CURDIR)/debian/tmp/
@@ -12,23 +13,35 @@ compilation_comment_release="Percona XtraDB Cluster (GPL), Release $(major_versi
 server_suffix="-$(major_version).$(minor_version)"
 prefix="/usr"
 
+DEB_VERSION ?= $(shell dpkg-parsechangelog | egrep '^Version:' | cut -f 2 -d ' ')
+
+ifneq (,$(filter $(ARCH), i386 kfreebsd-i386 hurd-i386))
+    TAOCRYPT_OPT="-DTAOCRYPT_DISABLE_X86ASM"
+endif
+
+CFLAGS = -O2 -DBIG_JOINS=1 -fno-strict-aliasing $(TAOCRYPT_OPT)
+CXXFLAGS = -O3 -DBIG_JOINS=1 -felide-constructors -fno-exceptions -fno-rtti -fno-strict-aliasing $(TAOCRYPT_OPT)
+
 %:
 	dh $@
 
 override_dh_auto_configure:
 	mkdir release
-	cd release && $(CMAKE) ../ -DBUILD_CONFIG=mysql_release \
-	   -DINSTALL_LAYOUT=DEB \
-	   -DCMAKE_BUILD_TYPE=RelWithDebInfo \
-	   -DWITH_SSL=system \
-	   -DWITH_EMBEDDED_SERVER=OFF \
-	   -DWITH_INNODB_DISALLOW_WRITES=ON \
-	   -DWITH_WSREP=ON \
-	   -DMYSQL_UNIX_ADDR="/var/run/mysqld/mysqld.sock" \
-	   -DFEATURE_SET=$(feature_set) \
-	   -DCOMPILATION_COMMENT=$(compilation_comment_release) \
-	   -DMYSQL_SERVER_SUFFIX=$(server_suffix) \
-	   -DWITH_PAM=ON
+	cd release && \
+	sh -c 'CFLAGS="$(CFLAGS)" \
+		   CXXFLAGS="$(CXXFLAGS)" \
+	   	   $(CMAKE) ../ -DBUILD_CONFIG=mysql_release \
+			   -DINSTALL_LAYOUT=DEB \
+			   -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+			   -DWITH_SSL=system \
+			   -DWITH_EMBEDDED_SERVER=OFF \
+			   -DWITH_INNODB_DISALLOW_WRITES=ON \
+			   -DWITH_WSREP=ON \
+			   -DMYSQL_UNIX_ADDR="/var/run/mysqld/mysqld.sock" \
+			   -DFEATURE_SET=$(feature_set) \
+			   -DCOMPILATION_COMMENT=$(compilation_comment_release) \
+			   -DMYSQL_SERVE_SUFFIX=$(DEB_VERSION) \
+			   -DWITH_PAM=ON'
 
 override_dh_auto_build:
 	cd release && make $(MAKE_JFLAG)
