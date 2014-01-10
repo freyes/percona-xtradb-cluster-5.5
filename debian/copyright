@@ -1,9 +1,9 @@
 Format: http://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
 Upstream-Name: Percona XtraDB Cluster 5.5
 Source: http://launchpad.net/percona-xtradb-cluster
-Comments: 
+Comments:
  Originally produced by a modified version of licensecheck2dep5
- from CDBS by Clint Byrum <clint@ubuntu.com>. Hand modified to reduce 
+ from CDBS by Clint Byrum <clint@ubuntu.com>. Hand modified to reduce
  redundancy in the output and add appropriate license text.
  .
  Also, MySQL carries the "FOSS License Exception" specified in README
@@ -26,21 +26,21 @@ Comments:
  > .
  > Updated July 1, 2010
  > .
- > What is the FOSS License Exception?  Oracle¿s Free and Open Source
+ > What is the FOSS License Exception?  Oracle's Free and Open Source
  > Software ("FOSS") License Exception (formerly known as the FLOSS
  > License Exception) allows developers of FOSS applications to include
  > Oracle's MySQL Client Libraries (also referred to as "MySQL Drivers"
  > or "MySQL Connectors") with their FOSS applications. MySQL Client
  > Libraries are typically licensed pursuant to version 2 of the General
  > Public License ("GPL"), but this exception permits distribution of
- > certain MySQL Client Libraries with a developer¿s FOSS applications
+ > certain MySQL Client Libraries with a developerÂ¿s FOSS applications
  > licensed under the terms of another FOSS license listed below,
  > even though such other FOSS license may be incompatible with the GPL.
  > .
  > The following terms and conditions describe the circumstances under
- > which Oracle¿s FOSS License Exception applies.
+ > which OracleÂ¿s FOSS License Exception applies.
  > .
- > Oracle¿s FOSS License Exception Terms and Conditions Definitions.
+ > OracleÂ¿s FOSS License Exception Terms and Conditions Definitions.
  > "Derivative Work" means a derivative work, as defined under applicable
  > copyright law, formed entirely from the Program and one or more
  > FOSS Applications.
@@ -51,16 +51,16 @@ Comments:
  > .
  > "FOSS Notice" means a notice placed by Oracle or MySQL in a copy
  > of the MySQL Client Libraries stating that such copy of the MySQL
- > Client Libraries may be distributed under Oracle's or MySQL¿s FOSS
+ > Client Libraries may be distributed under Oracle's or MySQLÂ¿s FOSS
  > (or FLOSS) License Exception.
  > .
  > "Independent Work" means portions of the Derivative Work that are not
  > derived from the Program and can reasonably be considered independent
  > and separate works.
  > .
- > "Program" means a copy of Oracle¿s MySQL Client Libraries that
+ > "Program" means a copy of OracleÂ¿s MySQL Client Libraries that
  > contains a FOSS Notice.
- > . 
+ > .
  > A FOSS application developer ("you" or "your") may distribute a
  > Derivative Work provided that you and the Derivative Work meet all
  > of the following conditions: You obey the GPL in all respects for
@@ -82,7 +82,7 @@ Comments:
  > does not apply to you or your Derivative Work.
  > .
  > FOSS License List
- > . 
+ > .
  > License Name    Version(s)/Copyright Date
  > Release Early    Certified Software
  > Academic Free License    2.0
@@ -117,7 +117,7 @@ Comments:
  > Terms and Conditions.
  .
  The above text is subject to this copyright notice:
- © 2010, Oracle and/or its affiliats.
+ Â© 2010, Oracle and/or its affiliats.
 
 Files: cmd-line-utils/libedit/config.h
  dbug/example1.c
@@ -152,11 +152,11 @@ Comment: These files fall under the blanket license specified in the file
 License: GPL-2
  GPLv2 Disclaimer
  For the avoidance of doubt, except that if any license choice
- other than GPL or LGPL is available it will apply instead, 
- Oracle elects to use only the General Public License version 2 
- (GPLv2) at this time for any software where a choice of GPL 
- license versions is made available with the language indicating 
- that GPLv2 or any later version may be used, or where a choice 
+ other than GPL or LGPL is available it will apply instead,
+ Oracle elects to use only the General Public License version 2
+ (GPLv2) at this time for any software where a choice of GPL
+ license versions is made available with the language indicating
+ that GPLv2 or any later version may be used, or where a choice
  of which version of the GPL is applied is otherwise unspecified.
 
 Files: BUILD/*
@@ -485,29 +485,29 @@ Files: dbug/dbug.c
  dbug/dbug_long.h
 Copyright: 1987 Abandoned Fred Fish
 License: UNKNOWN
- N O T I C E				      
+ N O T I C E
  .
- Copyright Abandoned, 1987, Fred Fish		      
+ Copyright Abandoned, 1987, Fred Fish
  .
  .
- This previously copyrighted work has been placed into the  public     
- domain	by  the  author  and  may be freely used for any purpose,     
- private or commercial.						      
+ This previously copyrighted work has been placed into the  public
+ domain	by  the  author  and  may be freely used for any purpose,
+ private or commercial.
  .
- Because of the number of inquiries I was receiving about the  use     
- of this product in commercially developed works I have decided to     
- simply make it public domain to further its unrestricted use.	I     
- specifically  would  be  most happy to see this material become a     
- part of the standard Unix distributions by AT&T and the  Berkeley     
- Computer  Science  Research Group, and a standard part of the GNU     
- system from the Free Software Foundation.			      
+ Because of the number of inquiries I was receiving about the  use
+ of this product in commercially developed works I have decided to
+ simply make it public domain to further its unrestricted use.	I
+ specifically  would  be  most happy to see this material become a
+ part of the standard Unix distributions by AT&T and the  Berkeley
+ Computer  Science  Research Group, and a standard part of the GNU
+ system from the Free Software Foundation.
  .
- I would appreciate it, as a courtesy, if this notice is  left  in     
- all copies and derivative works.  Thank you.			      
+ I would appreciate it, as a courtesy, if this notice is  left  in
+ all copies and derivative works.  Thank you.
  .
- The author makes no warranty of any kind  with	respect  to  this     
- product  and  explicitly disclaims any implied warranties of mer-     
- chantability or fitness for any particular purpose.		      
+ The author makes no warranty of any kind  with	respect  to  this
+ product  and  explicitly disclaims any implied warranties of mer-
+ chantability or fitness for any particular purpose.
 
 Files: cmd-line-utils/libedit/np/vis.c
 Copyright: 1989-1993 The Regents of the University of California.
@@ -542,12 +542,12 @@ Copyright: 2008-2009 Sun Microsystems Inc
 License: BSD (3 clause)
 
 Files: storage/ndb/test/src/getarg.c
-Copyright: 1997-2000 - Kungliga Tekniska Högskolan
+Copyright: 1997-2000 - Kungliga Tekniska HÃ¶gskolan
 License: BSD (3 clause)
 
 Files: storage/ndb/test/include/getarg.h
 Copyright: 2003 MySQL AB
- 1997-1999 Kungliga Tekniska Högskolan
+ 1997-1999 Kungliga Tekniska HÃ¶gskolan
 License: BSD (3 clause) GPL-2
  This program is free software; you can redistribute it and/or modify
  it under the terms of the GNU General Public License as published by
@@ -562,36 +562,36 @@ License: BSD (3 clause) GPL-2
  along with this program; if not, write to the Free Software
  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA */
  .
- Copyright (c) 1997, 1999 Kungliga Tekniska Högskolan
- (Royal Institute of Technology, Stockholm, Sweden). 
- All rights reserved. 
+ Copyright (c) 1997, 1999 Kungliga Tekniska HÃ¶gskolan
+ (Royal Institute of Technology, Stockholm, Sweden).
+ All rights reserved.
  .
- Redistribution and use in source and binary forms, with or without 
- modification, are permitted provided that the following conditions 
- are met: 
+ Redistribution and use in source and binary forms, with or without
+ modification, are permitted provided that the following conditions
+ are met:
  .
- 1. Redistributions of source code must retain the above copyright 
-    notice, this list of conditions and the following disclaimer. 
+ 1. Redistributions of source code must retain the above copyright
+    notice, this list of conditions and the following disclaimer.
  .
- 2. Redistributions in binary form must reproduce the above copyright 
-    notice, this list of conditions and the following disclaimer in the 
-    documentation and/or other materials provided with the distribution. 
+ 2. Redistributions in binary form must reproduce the above copyright
+    notice, this list of conditions and the following disclaimer in the
+    documentation and/or other materials provided with the distribution.
  .
- 3. Neither the name of the Institute nor the names of its contributors 
-    may be used to endorse or promote products derived from this software 
-    without specific prior written permission. 
+ 3. Neither the name of the Institute nor the names of its contributors
+    may be used to endorse or promote products derived from this software
+    without specific prior written permission.
  .
- THIS SOFTWARE IS PROVIDED BY THE INSTITUTE AND CONTRIBUTORS ``AS IS'' AND 
- ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE 
- IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE 
- ARE DISCLAIMED.  IN NO EVENT SHALL THE INSTITUTE OR CONTRIBUTORS BE LIABLE 
- FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL 
- DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS 
- OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) 
- HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT 
- LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY 
- OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF 
- SUCH DAMAGE. 
+ THIS SOFTWARE IS PROVIDED BY THE INSTITUTE AND CONTRIBUTORS ``AS IS'' AND
+ ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ ARE DISCLAIMED.  IN NO EVENT SHALL THE INSTITUTE OR CONTRIBUTORS BE LIABLE
+ FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+ DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
+ OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
+ HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+ LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
+ OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
+ SUCH DAMAGE.
 
 Files: storage/innobase/handler/ha_innodb.cc
 Copyright: 2008-2009 Google Inc
@@ -648,7 +648,7 @@ License: SWsoft
  This material is provided "as is", with absolutely no warranty expressed
  or implied. Any use is at your own risk.
  .
- Permission to use or copy this software for any purpose is hereby granted 
+ Permission to use or copy this software for any purpose is hereby granted
  without fee, provided the above notices are retained on all copies.
  Permission to modify the code and to distribute modified code is granted,
  provided the above notices are retained, and a notice that the code was
@@ -784,4 +784,3 @@ License: BSD (3 clause)
  LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
  OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  SUCH DAMAGE.
-
