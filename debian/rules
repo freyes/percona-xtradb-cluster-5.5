@@ -23,7 +23,7 @@ CFLAGS = -O2 -DBIG_JOINS=1 -fno-strict-aliasing $(TAOCRYPT_OPT)
 CXXFLAGS = -O3 -DBIG_JOINS=1 -felide-constructors -fno-exceptions -fno-rtti -fno-strict-aliasing $(TAOCRYPT_OPT)
 
 %:
-	dh $@
+	dh $@ --parallel
 
 override_dh_auto_configure:
 	mkdir release
