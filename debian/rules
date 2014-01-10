@@ -19,8 +19,8 @@ ifneq (,$(filter $(ARCH), i386 kfreebsd-i386 hurd-i386))
     TAOCRYPT_OPT="-DTAOCRYPT_DISABLE_X86ASM"
 endif
 
-CFLAGS = -O2 -DBIG_JOINS=1 -fno-strict-aliasing $(TAOCRYPT_OPT)
-CXXFLAGS = -O3 -DBIG_JOINS=1 -felide-constructors -fno-exceptions -fno-rtti -fno-strict-aliasing $(TAOCRYPT_OPT)
+MYSQL_CFLAGS = -O2 -DBIG_JOINS=1 -fno-strict-aliasing $(TAOCRYPT_OPT)
+MYSQL_CXXFLAGS = -O3 -DBIG_JOINS=1 -felide-constructors -fno-exceptions -fno-rtti -fno-strict-aliasing $(TAOCRYPT_OPT)
 
 %:
 	dh $@ --parallel
@@ -28,8 +28,8 @@ CXXFLAGS = -O3 -DBIG_JOINS=1 -felide-constructors -fno-exceptions -fno-rtti -fno
 override_dh_auto_configure:
 	mkdir release
 	cd release && \
-	sh -c 'CFLAGS="$(CFLAGS)" \
-		   CXXFLAGS="$(CXXFLAGS)" \
+	sh -c 'CFLAGS="$(MYSQL_CFLAGS)" \
+		   CXXFLAGS="$(MYSQL_CXXFLAGS)" \
 	   	   $(CMAKE) ../ -DBUILD_CONFIG=mysql_release \
 			   -DCMAKE_VERBOSE_MAKEFILE=ON \
 			   -DINSTALL_LAYOUT=DEB \
