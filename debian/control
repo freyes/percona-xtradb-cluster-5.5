@@ -26,9 +26,10 @@ Package: percona-xtradb-cluster-common-5.5
 Architecture: all
 Depends: mysql-common, ${misc:Depends}
 Multi-Arch: foreign
-Description: Percona XtraDB Cluster database common files
- Percona XtraDB Cluster is based on the Percona XtraDB Cluster database
+Description: Percona Server database common files
+ Percona XtraDB Cluster is based on the Percona Server database
  server and provides a High Availability solution.
+ .
  Percona XtraDB Cluster provides synchronous replication, supports
  multi-master replication, parallel applying on slaves, automatic
  node provisioning with primary focus on data consistency.
@@ -44,9 +45,10 @@ Depends:
  percona-xtradb-cluster-server-5.5 (>= ${source:Version})
 Breaks: mysql-testsuite-5.5
 Replaces: mysql-testsuite-5.5
-Description: Percona XtraDB Cluster database test suite
- Percona XtraDB Cluster is based on the Percona XtraDB Cluster database
+Description: Percona Server database test suite
+ Percona XtraDB Cluster is based on the Percona Server database
  server and provides a High Availability solution.
+ .
  Percona XtraDB Cluster provides synchronous replication, supports
  multi-master replication, parallel applying on slaves, automatic
  node provisioning with primary focus on data consistency.
@@ -68,9 +70,10 @@ Conflicts: mysql-client-5.5
 Breaks: mysql-client-5.5
 Replaces: mysql-client-5.5
 Provides: virtual-mysql-client
-Description: Percona XtraDB Cluster database client binaries
- Percona XtraDB Cluster is based on the Percona XtraDB Cluster database
+Description: Percona Server database client binaries
+ Percona XtraDB Cluster is based on the Percona Server database
  server and provides a High Availability solution.
+ .
  Percona XtraDB Cluster provides synchronous replication, supports
  multi-master replication, parallel applying on slaves, automatic
  node provisioning with primary focus on data consistency.
@@ -104,9 +107,10 @@ Conflicts: mysql-server-core-5.5
 Breaks: mysql-server-5.5
 Replaces: mysql-server-5.5
 Provides: virtual-mysql-server
-Description: Percona XtraDB Cluster database server binaries
- Percona XtraDB Cluster is based on the Percona XtraDB Cluster database
+Description: Percona Server database server binaries
+ Percona XtraDB Cluster is based on the Percona Server database
  server and provides a High Availability solution.
+ .
  Percona XtraDB Cluster provides synchronous replication, supports
  multi-master replication, parallel applying on slaves, automatic
  node provisioning with primary focus on data consistency.
@@ -120,10 +124,12 @@ Depends:
  percona-xtradb-cluster-server-5.5 (= ${binary:Version}),
  ${misc:Depends}
 Description: Debugging package for Percona XtraDB Cluster
- Percona XtraDB Cluster is based on the Percona XtraDB Cluster database
+ Percona XtraDB Cluster is based on the Percona Server database
  server and provides a High Availability solution.
+ .
  Percona XtraDB Cluster provides synchronous replication, supports
  multi-master replication, parallel applying on slaves, automatic
  node provisioning with primary focus on data consistency.
  .
- This package contains the debugging symbols for the Percona XtraDB Cluster binaries.
+ This package contains the debugging symbols for the Percona XtraDB
+ Cluster binaries.
