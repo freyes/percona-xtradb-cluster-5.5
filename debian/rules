@@ -65,21 +65,6 @@ override_dh_auto_build:
 			--libdir=$(prefix)/lib/mysql/plugin && \
 	make $(MAKE_JFLAG)
 
-build:
-	dh build
-
-binary:
-	dh -Brelease binary
-
-binary-arch:
-	dh -Brelease binary-arch
-
-binary-indep:
-	dh -Brelease binary-indep
-
-install:
-	dh install
-
 override_dh_auto_install:
 	dh_auto_install
 	cd storage/HandlerSocket-Plugin-for-MySQL && make DESTDIR=$(TMP) install
