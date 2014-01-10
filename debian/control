@@ -109,6 +109,7 @@ Architecture: any
 Suggests: netcat-openbsd, pv, qpress, tinyca
 Depends:
  adduser (>= 3.40),
+ bash,
  debconf,
  iproute,
  libdbd-mysql-perl,
@@ -121,6 +122,7 @@ Depends:
  percona-xtradb-cluster-galera-25,
  perl (>= 5.6),
  psmisc,
+ python:any,
  rsync,
  socat,
  tar,

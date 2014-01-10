@@ -1,4 +1,4 @@
-#!/bin/bash -e
+#!/bin/sh -e
 
 # It is possible that Debconf has already been removed, too.
 if [ -f /usr/share/debconf/confmodule ]; then
