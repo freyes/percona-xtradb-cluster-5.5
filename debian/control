@@ -19,6 +19,8 @@ Build-Depends:
  perl
 Standards-Version: 3.9.5
 Homepage: http://www.percona.com/software/percona-xtradb-cluster/
+Vcs-Git: git://git.debian.org/git/pkg-mysql/percona-xtradb-cluster-5.5.git
+Vcs-Browser: http://git.debian.org/?p=pkg-mysql/percona-xtradb-cluster-5.5.git
 
 Package: percona-xtradb-cluster-common-5.5
 Architecture: all
