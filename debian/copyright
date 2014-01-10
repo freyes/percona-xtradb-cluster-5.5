@@ -691,6 +691,10 @@ Files: scripts/wsrep_sst_*
 Copyright: 2013 Percona Inc
 License: GPL-2
 
+Files: wsrep/*
+Copyright: 2009-2013 Codership Oy <info@codership.com>
+License: GPL-2
+
 Files: debian/*
 Copyright: 2011, Ignacio Nin <ignacio.nin@percona.com>
            2013, Canonical Ltd.
