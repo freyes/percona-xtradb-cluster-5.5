@@ -31,6 +31,7 @@ override_dh_auto_configure:
 	sh -c 'CFLAGS="$(CFLAGS)" \
 		   CXXFLAGS="$(CXXFLAGS)" \
 	   	   $(CMAKE) ../ -DBUILD_CONFIG=mysql_release \
+			   -DCMAKE_VERBOSE_MAKEFILE=ON \
 			   -DINSTALL_LAYOUT=DEB \
 			   -DCMAKE_BUILD_TYPE=RelWithDebInfo \
 			   -DWITH_SSL=system \
