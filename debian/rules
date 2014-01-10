@@ -12,6 +12,7 @@ minor_version=1
 compilation_comment_release="Percona XtraDB Cluster (GPL), Release $(major_version).$(minor_version)"
 server_suffix="-$(major_version).$(minor_version)"
 prefix="/usr"
+builddir=release
 
 DEB_VERSION ?= $(shell dpkg-parsechangelog | egrep '^Version:' | cut -f 2 -d ' ')
 
@@ -26,8 +27,8 @@ MYSQL_CXXFLAGS = -O3 -DBIG_JOINS=1 -felide-constructors -fno-exceptions -fno-rtt
 	dh $@ --parallel
 
 override_dh_auto_configure:
-	mkdir release
-	cd release && \
+	mkdir $(builddir)
+	cd $(builddir) && \
 	sh -c 'CFLAGS="$(MYSQL_CFLAGS)" \
 		   CXXFLAGS="$(MYSQL_CXXFLAGS)" \
 	   	   $(CMAKE) ../ -DBUILD_CONFIG=mysql_release \
@@ -45,7 +46,7 @@ override_dh_auto_configure:
 			   -DWITH_PAM=ON'
 
 override_dh_auto_build:
-	cd release && make $(MAKE_JFLAG)
+	cd $(builddir) && make $(MAKE_JFLAG)
 
 	# Build HandlerSocket
 	echo "Configuring HandlerSocket"
@@ -67,7 +68,7 @@ override_dh_auto_build:
 	make $(MAKE_JFLAG)
 
 override_dh_auto_install:
-	dh_auto_install
+	cd $(builddir) && make DESTDIR=$(TMP) install
 	cd storage/HandlerSocket-Plugin-for-MySQL && make DESTDIR=$(TMP) install
 	cd UDF && make DESTDIR=$(TMP) install
 
