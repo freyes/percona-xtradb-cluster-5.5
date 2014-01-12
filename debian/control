@@ -115,7 +115,6 @@ Architecture: any
 Suggests: netcat-openbsd, pv, qpress, tinyca
 Depends:
  adduser (>= 3.40),
- debconf,
  iproute,
  libdbd-mysql-perl,
  libdbi-perl,
@@ -132,6 +131,7 @@ Depends:
  socat,
  ${misc:Depends},
  ${shlibs:Depends}
+Pre-Depends: debconf, ${misc:Pre-Depends}
 Conflicts: mariadb-server-core-5.5, mysql-server-core-5.5
 Breaks: mariadb-server-5.5, mysql-server-5.5
 Replaces: mariadb-server-5.5, mysql-server-5.5
