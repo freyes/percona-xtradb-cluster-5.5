@@ -67,8 +67,8 @@ Architecture: all
 Depends: percona-xtradb-cluster-test-5.5 (>= ${source:Version}), ${misc:Depends}
 Breaks: mariadb-test, mysql-test
 Replaces: mariadb-test, mysql-test
-Description: Percona XtraDB Cluster database regression test suite (metapackage for the latest version)
- This is an empty package that depends on the current "best" version of
+Description: Percona XtraDB Cluster database regression test suite
+ This is a metapackage package that depends on the current "best" version of
  percona-xtradb-cluster-test, as determined by the Percona XtraDB Cluster
  maintainers.  Install this package if in doubt about which version
  you want, as this is the one considered to be in the best shape.
@@ -104,8 +104,8 @@ Depends:
  ${misc:Depends}
 Breaks: mariadb-client, mysql-client
 Replaces: mariadb-client, mysql-client
-Description: Percona XtraDB Cluster database client (metapackage depending on the latest version)
- This is an empty package that depends on the current "best" version of
+Description: Percona XtraDB Cluster database client
+ This is a metapackage package that depends on the current "best" version of
  percona-xtradb-cluster-client, as determined by the Percona XtraDB Cluster
  maintainers.  Install this package if in doubt about which version
  you want, as this is the one considered to be in the best shape.
@@ -153,8 +153,8 @@ Depends:
  ${misc:Depends}
 Breaks: mariadb-server, mysql-server
 Replaces: mariadb-server, mysql-server
-Description: Percona XtraDB Cluster database server (metapackage depending on the latest version)
- This is an empty package that depends on the current "best" version of
+Description: Percona XtraDB Cluster database server
+ This is a metapackage package that depends on the current "best" version of
  percona-xtradb-cluster-server, as determined by the Percona XtraDB Cluster
  maintainers.  Install this package if in doubt about which version
  you want, as this is the one considered to be in the best shape.
