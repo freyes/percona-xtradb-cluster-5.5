@@ -1,0 +1,21 @@
+Description: Fixup implicit function definitions
+Author: James Page <james.page@ubuntu.com>
+Forwarded: no
+
+--- a/storage/innobase/trx/trx0i_s.c
++++ b/storage/innobase/trx/trx0i_s.c
+@@ -38,6 +38,14 @@ Created July 17, 2007 Vasil Dimov
+ 
+ #include <mysql/plugin.h>
+ 
++#ifdef WITH_WSREP
++extern "C" const char *wsrep_consistency_check_str(THD *thd);
++extern "C" const char * wsrep_thd_query_state_str(THD *thd);
++extern "C" const char * wsrep_thd_conflict_state_str(THD *thd);
++extern "C" const char * wsrep_thd_exec_mode_str(THD *thd);
++extern "C" int64_t wsrep_thd_trx_seqno(THD *thd);
++#endif
++
+ #include "buf0buf.h"
+ #include "dict0dict.h"
+ #include "ha0storage.h"
