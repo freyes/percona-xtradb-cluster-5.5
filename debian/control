@@ -8,7 +8,7 @@ Build-Depends:
  automake,
  bison,
  cmake,
- debhelper (>= 7.0.50),
+ debhelper (>= 7.0.50~),
  devscripts,
  fakeroot,
  hardening-wrapper,
