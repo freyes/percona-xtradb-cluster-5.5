@@ -46,7 +46,8 @@ Architecture: any
 Depends:
  percona-xtradb-cluster-client-5.5 (>= ${source:Version}),
  percona-xtradb-cluster-server-5.5 (>= ${source:Version}),
- ${misc:Depends}
+ ${misc:Depends},
+ ${shlibs:Depends}
 Conflicts: mariadb-test-5.5, mysql-testsuite-5.5
 Breaks: mariadb-test-5.5, mysql-testsuite-5.5
 Replaces: mariadb-test-5.5, mysql-testsuite-5.5
@@ -81,7 +82,7 @@ Depends:
  libmysqlclient18,
  percona-xtradb-cluster-common-5.5 (>= ${source:Version}),
  ${misc:Depends},
- ${shlib:Depends}
+ ${shlibs:Depends}
 Conflicts: mariadb-client-5.5, mysql-client-5.5
 Breaks: mariadb-client-5.5, mysql-client-5.5
 Replaces: mariadb-client-5.5, mysql-client-5.5
