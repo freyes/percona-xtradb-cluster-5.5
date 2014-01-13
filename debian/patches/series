@@ -4,3 +4,4 @@
 40_scripts__mysql_install_db.sh__no_test.dpatch
 50_mysql-test__db_test.dpatch
 patch-sql_sql__yacc.yy
+fix-implicit-conversion.patch
