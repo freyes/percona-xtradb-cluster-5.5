@@ -718,6 +718,9 @@ License:
  .
  4. This notice may not be removed or altered.
 
+Files: UDF/src/*
+License: public domain
+
 Files: debian/*
 Copyright: 2011, Ignacio Nin <ignacio.nin@percona.com>
            2013, Canonical Ltd.
