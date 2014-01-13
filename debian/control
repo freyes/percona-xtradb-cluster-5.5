@@ -49,8 +49,6 @@ Depends:
  ${misc:Depends},
  ${shlibs:Depends}
 Conflicts: mariadb-test-5.5, mysql-testsuite-5.5
-Breaks: mariadb-test-5.5, mysql-testsuite-5.5
-Replaces: mariadb-test-5.5, mysql-testsuite-5.5
 Description: Percona Server database test suite
  Percona XtraDB Cluster is based on the Percona Server database
  server and provides a High Availability solution.
@@ -66,8 +64,7 @@ Description: Percona Server database test suite
 Package: percona-xtradb-cluster-test
 Architecture: all
 Depends: percona-xtradb-cluster-test-5.5 (>= ${source:Version}), ${misc:Depends}
-Breaks: mariadb-test, mysql-test
-Replaces: mariadb-test, mysql-test
+Conflicts: mariadb-test, mysql-test
 Description: Percona XtraDB Cluster database regression test suite
  This is a metapackage package that depends on the current "best" version of
  percona-xtradb-cluster-test, as determined by the Percona XtraDB Cluster
@@ -83,9 +80,11 @@ Depends:
  percona-xtradb-cluster-common-5.5 (>= ${source:Version}),
  ${misc:Depends},
  ${shlibs:Depends}
-Conflicts: mariadb-client-5.5, mysql-client-5.5
-Breaks: mariadb-client-5.5, mysql-client-5.5
-Replaces: mariadb-client-5.5, mysql-client-5.5
+Conflicts:
+ mariadb-client-5.5,
+ mariadb-client-core-5.5,
+ mysql-client-5.5,
+ mysql-client-core-5.5
 Provides: virtual-mysql-client
 Description: Percona Server database client binaries
  Percona XtraDB Cluster is based on the Percona Server database
@@ -103,8 +102,7 @@ Architecture: all
 Depends:
  percona-xtradb-cluster-client-5.5 (>= ${source:Version}),
  ${misc:Depends}
-Breaks: mariadb-client, mysql-client
-Replaces: mariadb-client, mysql-client
+Conflicts: mariadb-client, mysql-client
 Description: Percona XtraDB Cluster database client
  This is a metapackage package that depends on the current "best" version of
  percona-xtradb-cluster-client, as determined by the Percona XtraDB Cluster
@@ -133,9 +131,11 @@ Depends:
  ${misc:Depends},
  ${shlibs:Depends}
 Pre-Depends: debconf, ${misc:Pre-Depends}
-Conflicts: mariadb-server-core-5.5, mysql-server-core-5.5
-Breaks: mariadb-server-5.5, mysql-server-5.5
-Replaces: mariadb-server-5.5, mysql-server-5.5
+Conflicts:
+ maradb-server-5.5,
+ mariadb-server-core-5.5,
+ mysql-server-5.5,
+ mysql-server-core-5.5
 Provides: virtual-mysql-server
 Description: Percona Server database server binaries
  Percona XtraDB Cluster is based on the Percona Server database
@@ -152,8 +152,7 @@ Architecture: all
 Depends:
  percona-xtradb-cluster-server-5.5 (>= ${source:Version}),
  ${misc:Depends}
-Breaks: mariadb-server, mysql-server
-Replaces: mariadb-server, mysql-server
+Conflicts: mariadb-server, mysql-server
 Description: Percona XtraDB Cluster database server
  This is a metapackage package that depends on the current "best" version of
  percona-xtradb-cluster-server, as determined by the Percona XtraDB Cluster
