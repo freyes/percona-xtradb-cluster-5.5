@@ -9,11 +9,11 @@ Forwarded: no
  #include <mysql/plugin.h>
  
 +#ifdef WITH_WSREP
-+extern const char *wsrep_consistency_check_str(THD *thd);
-+extern const char * wsrep_thd_query_state_str(THD *thd);
-+extern const char * wsrep_thd_conflict_state_str(THD *thd);
-+extern const char * wsrep_thd_exec_mode_str(THD *thd);
-+extern int64_t wsrep_thd_trx_seqno(THD *thd);
++extern const char *wsrep_consistency_check_str(void *thd);
++extern const char * wsrep_thd_query_state_str(void *thd);
++extern const char * wsrep_thd_conflict_state_str(void *thd);
++extern const char * wsrep_thd_exec_mode_str(void *thd);
++extern int64_t wsrep_thd_trx_seqno(void *thd);
 +#endif
 +
  #include "buf0buf.h"
