@@ -745,7 +745,8 @@ License:
  ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 Files: UDF/src/*
-License: public domain
+Copyright: nobody
+License: public-domain
 
 Files: debian/*
 Copyright: 2011, Ignacio Nin <ignacio.nin@percona.com>
