@@ -15,7 +15,6 @@ Build-Depends:
  libaio-dev [linux-any],
  libncurses5-dev (>= 5.0-6),
  libpam-dev,
- libssl-dev,
  libtool,
  libwrap0-dev (>= 7.6-8.3),
  perl,
