@@ -12,7 +12,7 @@ circumstances as it is checked first. See #301741.
 http://bugs.mysql.com/bug.php?id=6901
 --- a/scripts/mysql_system_tables_data.sql
 +++ b/scripts/mysql_system_tables_data.sql
-@@ -11,8 +11,6 @@
+@@ -31,8 +31,6 @@ SELECT REPLACE((SELECT REPLACE(@get_host
  -- Fill "db" table with default grants for anyone to
  -- access database 'test' and 'test_%' if "db" table didn't exist
  CREATE TEMPORARY TABLE tmp_db LIKE db;
@@ -21,7 +21,7 @@ http://bugs.mysql.com/bug.php?id=6901
  INSERT INTO db SELECT * FROM tmp_db WHERE @had_db_table=0;
  DROP TABLE tmp_db;
  
-@@ -25,8 +23,6 @@
+@@ -44,8 +42,6 @@ INSERT INTO tmp_user VALUES ('localhost'
  REPLACE INTO tmp_user SELECT @current_hostname,'root','','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','','','','',0,0,0,0,'','' FROM dual WHERE LOWER( @current_hostname) != 'localhost';
  REPLACE INTO tmp_user VALUES ('127.0.0.1','root','','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','','','','',0,0,0,0,'','');
  REPLACE INTO tmp_user VALUES ('::1','root','','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','','','','',0,0,0,0,'','');
