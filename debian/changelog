@@ -1,5 +1,0 @@
-percona-xtradb-cluster-5.5 (5.5.34-25.9-1) UNRELEASED; urgency=medium
-
-  * Initial release (Closes: #734880).
-
- -- James Page <james.page@ubuntu.com>  Wed, 08 Jan 2014 14:59:37 +0000

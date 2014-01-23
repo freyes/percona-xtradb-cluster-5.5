@@ -1,2 +1,0 @@
-# server package manages its own updates to init scripts
-percona-xtradb-cluster-5.5 source: maintainer-script-lacks-debhelper-token debian/percona-xtradb-cluster-server-5.5.postrm
