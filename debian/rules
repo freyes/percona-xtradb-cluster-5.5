@@ -75,3 +75,6 @@ override_dh_auto_install:
 
 override_dh_installinit:
 	dh_installinit --name=mysql --error-handler=:
+
+override_dh_clean:
+	dh_clean -XUDF
