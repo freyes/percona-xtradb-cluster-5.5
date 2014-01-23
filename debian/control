@@ -41,7 +41,7 @@ Description: Percona Server database common files
  This package includes files needed by all versions of the client library
  (e.g. /etc/mysql/my.cnf).
 
-Package: percona-xtradb-cluster-test-5.5
+Package: percona-xtradb-cluster-testsuite-5.5
 Architecture: any
 Depends:
  percona-xtradb-cluster-client-5.5 (>= ${source:Version}),
@@ -61,13 +61,13 @@ Description: Percona Server database test suite
  a means for verifying that Percona XtraDB Cluster and its client programs
  operate according to expectations
 
-Package: percona-xtradb-cluster-test
+Package: percona-xtradb-cluster-testsuite
 Architecture: all
-Depends: percona-xtradb-cluster-test-5.5 (>= ${source:Version}), ${misc:Depends}
-Conflicts: mariadb-test, mysql-test
+Depends: percona-xtradb-cluster-testsuite-5.5 (>= ${source:Version}), ${misc:Depends}
+Conflicts: mariadb-test, mysql-testsuite
 Description: Percona XtraDB Cluster database regression test suite
  This is a metapackage package that depends on the current "best" version of
- percona-xtradb-cluster-test, as determined by the Percona XtraDB Cluster
+ percona-xtradb-cluster-testsuite, as determined by the Percona XtraDB Cluster
  maintainers.  Install this package if in doubt about which version
  you want, as this is the one considered to be in the best shape.
 
