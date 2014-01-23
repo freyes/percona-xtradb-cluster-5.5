@@ -35,7 +35,7 @@ override_dh_auto_configure:
 			   -DCMAKE_VERBOSE_MAKEFILE=ON \
 			   -DINSTALL_LAYOUT=DEB \
 			   -DCMAKE_BUILD_TYPE=RelWithDebInfo \
-			   -DWITH_SSL=bundled \
+			   -DWITH_SSL=system \
 			   -DWITH_ZLIB=system \
 			   -DWITH_EMBEDDED_SERVER=OFF \
 			   -DWITH_INNODB_DISALLOW_WRITES=ON \
