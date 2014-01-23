@@ -1,4 +1,3 @@
-#!/bin/bash
 #
 # This file is included by /etc/mysql/debian-start
 #
