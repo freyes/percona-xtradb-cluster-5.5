@@ -1,0 +1,3 @@
+percona-xtradb-cluster-server-5.5: embedded-library usr/sbin/mysqld: libmysqlclient
+percona-xtradb-cluster-server-5.5: embedded-library usr/bin/mysqlbinlog: libmysqlclient
+percona-xtradb-cluster-server-5.5: embedded-library usr/bin/mysqltest: libmysqlclient
