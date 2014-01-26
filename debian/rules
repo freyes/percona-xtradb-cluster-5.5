@@ -6,11 +6,11 @@ export DEB_BUILD_HARDENING=1
 CMAKE=cmake
 TMP=$(CURDIR)/debian/tmp/
 
+DISTRIBUTION := $(shell lsb_release -i -s)
 feature_set="community"
 major_version=31
 minor_version=1
-compilation_comment_release="Percona XtraDB Cluster (GPL), Release $(major_version).$(minor_version)"
-server_suffix="-$(major_version).$(minor_version)"
+compilation_comment_release="Percona XtraDB Cluster (GPL), Release $(major_version).$(minor_version) ($(DISTRIBUTION))"
 prefix="/usr"
 builddir=release
 
