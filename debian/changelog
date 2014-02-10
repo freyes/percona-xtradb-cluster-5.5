@@ -1,5 +1,5 @@
-percona-xtradb-cluster-5.5 (5.5.34-25.9+dfsg-1) UNRELEASED; urgency=medium
+percona-xtradb-cluster-5.5 (5.5.34-25.9+dfsg-1) unstable; urgency=medium
 
   * Initial release (Closes: #734880).
 
- -- James Page <james.page@ubuntu.com>  Wed, 08 Jan 2014 14:59:37 +0000
+ -- James Page <jamespage@debian.org>  Mon, 10 Feb 2014 14:22:38 +0200
