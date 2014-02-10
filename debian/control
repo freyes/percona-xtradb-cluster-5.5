@@ -1,7 +1,8 @@
 Source: percona-xtradb-cluster-5.5
 Section: database
 Priority: extra
-Maintainer: Debian MySQL Maintainers <pkg-mysql-maint@lists.alioth.debian.org>
+Maintainer: Ubuntu Developers <ubuntu-devel-discuss@lists.ubuntu.com>
+XSBC-Original-Maintainer: Debian MySQL Maintainers <pkg-mysql-maint@lists.alioth.debian.org>
 Uploaders: James Page <jamespage@debian.org>
 Build-Depends:
  autoconf,
