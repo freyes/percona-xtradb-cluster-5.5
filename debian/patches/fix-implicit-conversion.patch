@@ -1,6 +1,6 @@
 Description: Fixup implicit function definitions
 Author: James Page <james.page@ubuntu.com>
-Forwarded: no
+Forwarded: https://bugs.launchpad.net/percona-xtradb-cluster/+bug/1278417
 
 --- a/storage/innobase/trx/trx0i_s.c
 +++ b/storage/innobase/trx/trx0i_s.c
