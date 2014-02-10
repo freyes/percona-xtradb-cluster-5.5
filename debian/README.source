@@ -1,0 +1,13 @@
+Percona XtraDB Cluster for Debian
+=================================
+
+Release tarballs can be downloaded from:
+
+  http://www.percona.com/downloads/Percona-XtraDB-Cluster/LATEST/source/
+
+The intent is that this will eventually be parsable using uscan with a watch
+file; for the time being please run:
+
+  ./debian/orig-tar.sh NEW <VERSION>
+
+by hand to repack the tarball to remove bundled python code from other projects.
