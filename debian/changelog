@@ -1,4 +1,4 @@
-percona-xtradb-cluster-5.5 (5.5.34-25.9+dfsg-0ubuntu2) UNRELEASED; urgency=medium
+percona-xtradb-cluster-5.5 (5.5.34-25.9+dfsg-0ubuntu2) trusty; urgency=medium
 
   * d/control,rules,autoreconf: Use dh-autoreconf to reconfigure UDF and
     HandlerSocket-Plugin-for-MySQL sub-projects, fixing FTBFS on ppc64el.
@@ -10,7 +10,7 @@ percona-xtradb-cluster-5.5 (5.5.34-25.9+dfsg-0ubuntu2) UNRELEASED; urgency=mediu
     (LP: #1290331).
   * d/control: Drop dependency on libmysqlclient18 - not used.
 
- -- James Page <james.page@ubuntu.com>  Mon, 10 Mar 2014 10:13:36 +0000
+ -- James Page <james.page@ubuntu.com>  Mon, 10 Mar 2014 17:31:43 +0000
 
 percona-xtradb-cluster-5.5 (5.5.34-25.9+dfsg-0ubuntu1) trusty; urgency=medium
 
