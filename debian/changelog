@@ -8,6 +8,7 @@ percona-xtradb-cluster-5.5 (5.5.34-25.9+dfsg-0ubuntu2) UNRELEASED; urgency=mediu
   * d/additions/pxc.cnf,percona-xtradb-cluster-common-5.5.install: Add PXC
     specific configuration to /etc/mysql/conf.d to disable MySQL query cache
     (LP: #1290331).
+  * d/control: Drop dependency on libmysqlclient18 - not used.
 
  -- James Page <james.page@ubuntu.com>  Mon, 10 Mar 2014 10:13:36 +0000
 

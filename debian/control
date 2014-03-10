@@ -83,7 +83,6 @@ Architecture: any
 Depends:
  debianutils (>=1.6),
  libdbi-perl,
- libmysqlclient18,
  percona-xtradb-cluster-common-5.5 (>= ${source:Version}),
  ${misc:Depends},
  ${shlibs:Depends}
