@@ -11,6 +11,7 @@ Build-Depends:
  cmake,
  debhelper (>= 7.0.50~),
  devscripts,
+ dh-autoreconf,
  fakeroot,
  hardening-wrapper,
  libaio-dev [linux-any],

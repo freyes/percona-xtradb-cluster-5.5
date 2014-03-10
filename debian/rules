@@ -24,7 +24,7 @@ MYSQL_CFLAGS = -O2 -DBIG_JOINS=1 -fno-strict-aliasing $(TAOCRYPT_OPT)
 MYSQL_CXXFLAGS = -O3 -DBIG_JOINS=1 -felide-constructors -fno-exceptions -fno-rtti -fno-strict-aliasing $(TAOCRYPT_OPT)
 
 %:
-	dh $@ --parallel
+	dh $@ --parallel --with autoreconf
 
 override_dh_auto_configure:
 	mkdir $(builddir)
@@ -52,7 +52,6 @@ override_dh_auto_build:
 	# Build HandlerSocket
 	echo "Configuring HandlerSocket"
 	cd storage/HandlerSocket-Plugin-for-MySQL && \
-	bash -x autogen.sh && \
 	CXX="$${HS_CXX:-g++}" CXXFLAGS="$(CXXFLAGS) -I$(CURDIR)/release/include" \
 		./configure --with-mysql-source=$(CURDIR) \
 			--with-mysql-bindir=$(CURDIR)/release/scripts \
