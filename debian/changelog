@@ -1,3 +1,10 @@
+percona-xtradb-cluster-5.5 (5.5.34-25.9+dfsg-0ubuntu3) UNRELEASED; urgency=medium
+
+  * d/p/70_mysql_va_list.patch: Cherry pick patch from mysql-5.5 to ensure that
+    va_list usage is portable, fixing FTBFS on armhf and arm64.
+
+ -- James Page <james.page@ubuntu.com>  Tue, 11 Mar 2014 13:15:35 +0000
+
 percona-xtradb-cluster-5.5 (5.5.34-25.9+dfsg-0ubuntu2) trusty; urgency=medium
 
   * d/control,rules,autoreconf: Use dh-autoreconf to reconfigure UDF and
