@@ -1,3 +1,11 @@
+percona-xtradb-cluster-5.5 (5.5.34-25.9+dfsg-0ubuntu4) UNRELEASED; urgency=medium
+
+  * d/p/CVE-2014-0001.patch:
+    - Fix buffer overflow in client/mysql.cc via a long server version string.
+      CVE-2014-0001
+
+ -- James Page <james.page@ubuntu.com>  Sun, 16 Mar 2014 16:35:33 +0000
+
 percona-xtradb-cluster-5.5 (5.5.34-25.9+dfsg-0ubuntu3) trusty; urgency=medium
 
   * d/p/70_mysql_va_list.patch: Cherry pick patch from mysql-5.5 to ensure that
