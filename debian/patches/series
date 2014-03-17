@@ -7,3 +7,4 @@
 patch-sql_sql__yacc.yy
 fix-implicit-conversion.patch
 CVE-2014-0001.patch
+fix_standalone_tests.patch
