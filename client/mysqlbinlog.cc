@@ -39,11 +39,24 @@
 #include "my_dir.h"
 #include <welcome_copyright_notice.h> // ORACLE_WELCOME_COPYRIGHT_NOTICE
 
+/* Needed for Rpl_filter */
+CHARSET_INFO* system_charset_info= &my_charset_utf8_general_ci;
+
+#include "rpl_filter.h"
+
+/*
+ True if obsolette syntax warning has been already shown
+ during parsing --rewrite-db command line option
+*/
+bool rewrite_db_obs_syn_warn= false;
+Rpl_filter *binlog_filter= NULL;
+
 #define BIN_LOG_HEADER_SIZE	4
 #define PROBE_HEADER_LEN	(EVENT_LEN_OFFSET+4)
 
 
 #define CLIENT_CAPABILITIES	(CLIENT_LONG_PASSWORD | CLIENT_LONG_FLAG | CLIENT_LOCAL_FILES)
+#include <sslopt-vars.h>
 
 char server_version[SERVER_VERSION_LENGTH];
 ulong server_id = 0;
@@ -298,7 +311,7 @@ public:
                                   Create_file_log_event *ce);
 };
 
-
+static my_bool opt_compress=0;
 /**
   Creates and opens a new temporary file in the directory specified by previous call to init_by_dir_name() or init_by_cur_dir().
 
@@ -630,6 +643,35 @@ static bool shall_skip_database(const char *log_dbname)
          strcmp(log_dbname, database);
 }
 
+/**
+  Rewrites db name in T instance if binlog_filter contains
+  name for replacement(see --rewrite-db option).
+
+  T::db must be weak pointer and can point to the memory owned by
+  "binlog_filter" after this function execution, that is why "ev" must be
+  destroyed before "binlog_filter".
+
+  @param ev Event to process
+*/
+template <typename T>
+static void rewrite_db(T &ev)
+{
+  size_t      len_to= 0;
+  const char* db_to;
+
+  DBUG_ASSERT(binlog_filter);
+
+  if (!ev.db)
+    return;
+
+  db_to=  binlog_filter->get_rewrite_db(ev.db, &len_to);
+
+  if (!len_to)
+    return;
+
+  ev.db= db_to;
+  ev.db_len= len_to;
+}
 
 /**
   Prints the given event in base64 format.
@@ -751,8 +793,16 @@ Exit_status process_event(PRINT_EVENT_INFO *print_event_info, Log_event *ev,
 
     switch (ev_type) {
     case QUERY_EVENT:
-      if (!((Query_log_event*)ev)->is_trans_keyword() &&
-          shall_skip_database(((Query_log_event*)ev)->db))
+    {
+      Query_log_event *qlev = static_cast<Query_log_event *>(ev);
+      /*
+        ev is deleted at the end of this function(before binlog_filter deletion)
+        so it is safe to set ev->db to some memory owned by binlog_filter here.
+      */
+      if (binlog_filter)
+        rewrite_db(*qlev);
+      if (!qlev->is_trans_keyword() &&
+          shall_skip_database(qlev->db))
         goto end;
       if (opt_base64_output_mode == BASE64_OUTPUT_ALWAYS)
       {
@@ -766,10 +816,16 @@ Exit_status process_event(PRINT_EVENT_INFO *print_event_info, Log_event *ev,
       if (head->error == -1)
         goto err;
       break;
-
+    }
     case CREATE_FILE_EVENT:
     {
       Create_file_log_event* ce= (Create_file_log_event*)ev;
+      /*
+        ev is deleted at the end of this function(before binlog_filter deletion)
+        so it is safe to set ev->db to some memory owned by binlog_filter here.
+      */
+      if (binlog_filter)
+        rewrite_db(*ce);
       /*
         We test if this event has to be ignored. If yes, we don't save
         this event; this will have the good side-effect of ignoring all
@@ -902,6 +958,12 @@ Exit_status process_event(PRINT_EVENT_INFO *print_event_info, Log_event *ev,
     case EXECUTE_LOAD_QUERY_EVENT:
     {
       Execute_load_query_log_event *exlq= (Execute_load_query_log_event*)ev;
+      /*
+        ev is deleted at the end of this function(before binlog_filter deletion)
+        so it is safe to set ev->db to some memory owned by binlog_filter here.
+      */
+      if (binlog_filter)
+        rewrite_db(*exlq);
       char *fname= load_processor.grab_fname(exlq->file_id);
 
       if (!shall_skip_database(exlq->db))
@@ -929,6 +991,19 @@ Exit_status process_event(PRINT_EVENT_INFO *print_event_info, Log_event *ev,
     case TABLE_MAP_EVENT:
     {
       Table_map_log_event *map= ((Table_map_log_event *)ev);
+      // Rewrite db name here (see --rewrite-db option)
+      if (binlog_filter)
+      {
+        size_t      len_to= 0;
+        const char* db_to=  binlog_filter->get_rewrite_db(map->get_db_name(),
+                                                          &len_to);
+        if (len_to && map->rewrite_db(db_to, len_to, glob_description_event))
+        {
+          error("Could not rewrite database name");
+          goto err;
+        }
+      }
+
       if (shall_skip_database(map->get_db_name()))
       {
         print_event_info->m_table_map_ignored.set_table(map->get_table_id(), map);
@@ -1090,6 +1165,9 @@ static struct my_option my_long_options[] =
   {"character-sets-dir", OPT_CHARSETS_DIR,
    "Directory for character set files.", &charsets_dir,
    &charsets_dir, 0, GET_STR, REQUIRED_ARG, 0, 0, 0, 0, 0, 0},
+  {"compress", 'C', "Use compression in server/client protocol.",
+   &opt_compress, &opt_compress, 0, GET_BOOL, NO_ARG, 0, 0, 0,
+   0, 0, 0},
   {"database", 'd', "List entries for just this database (local log only).",
    &database, &database, 0, GET_STR_ALLOC, REQUIRED_ARG,
    0, 0, 0, 0, 0, 0},
@@ -1173,6 +1251,7 @@ static struct my_option my_long_options[] =
   {"socket", 'S', "The socket file to use for connection.",
    &sock, &sock, 0, GET_STR, REQUIRED_ARG, 0, 0, 0, 0,
    0, 0},
+#include <sslopt-longopts.h>
   {"start-datetime", OPT_START_DATETIME,
    "Start reading the binlog at first event having a datetime equal or "
    "posterior to the argument; the argument must be a date and time "
@@ -1220,6 +1299,10 @@ that may lead to an endless loop.",
    "Used to reserve file descriptors for use by this program.",
    &open_files_limit, &open_files_limit, 0, GET_ULONG,
    REQUIRED_ARG, MY_NFILE, 8, OS_FILE_LIMIT, 0, 1, 0},
+  {"rewrite-db", OPT_REWRITE_DB,
+   "Updates to a database with a different name than the original. "
+   "Example: rewrite-db='from->to'.",
+   0, 0, 0, GET_STR, REQUIRED_ARG, 0, 0, 0, 0, 0, 0},
   {0, 0, 0, 0, 0, 0, GET_NO_ARG, NO_ARG, 0, 0, 0, 0, 0, 0}
 };
 
@@ -1298,6 +1381,7 @@ static void cleanup()
   my_free(dirname_for_local_load);
 
   delete glob_description_event;
+  delete binlog_filter;
   if (mysql)
     mysql_close(mysql);
 }
@@ -1356,6 +1440,7 @@ get_one_option(int optid, const struct my_option *opt __attribute__((unused)),
     DBUG_PUSH(argument ? argument : default_dbug_option);
     break;
 #endif
+#include <sslopt-case.h>
   case 'd':
     one_database = 1;
     break;
@@ -1400,6 +1485,88 @@ get_one_option(int optid, const struct my_option *opt __attribute__((unused)),
         (find_type_or_exit(argument, &base64_output_mode_typelib, opt->name)-1);
     }
     break;
+  case OPT_REWRITE_DB:    // db_from->db_to
+  {
+    /* See also handling of OPT_REPLICATE_REWRITE_DB in sql/mysqld.cc */
+    char* ptr= argument;
+    do {
+      char* key= ptr;                         // db-from
+      char* val;                                   // db-to
+
+      // Where key begins
+      while (*key && my_isspace(&my_charset_latin1, *key))
+        key++;
+
+      // Where val begins
+      if (!(ptr= strstr(key, "->")))
+      {
+        sql_print_error("Bad syntax in rewrite-db: missing '->'!\n");
+        return 1;
+      }
+      val= ptr + 2;
+      while (*val && my_isspace(&my_charset_latin1, *val))
+        val++;
+
+      // Write \0 and skip blanks at the end of key
+      *ptr-- = 0;
+      while (my_isspace(&my_charset_latin1, *ptr) && ptr > argument)
+        *ptr-- = 0;
+
+      if (!*key)
+      {
+        sql_print_error("Bad syntax in rewrite-db: empty db-from!\n");
+        return 1;
+      }
+
+      // Skip blanks at the end of val
+      ptr= val;
+      while (*ptr && !my_isspace(&my_charset_latin1, *ptr) && *ptr != ',')
+        ++ptr;
+
+      if (my_isspace(&my_charset_latin1, *ptr))
+      {
+        *(ptr++)= 0;
+        while (*ptr && *ptr != ',')
+	{
+          if (!my_isspace(&my_charset_latin1, *ptr)) {
+            sql_print_error("Bad syntax in rewrite-db: db-to must contain db "
+			    "name without spaces!\n");
+            return 1;
+	  }
+          ++ptr;
+	}
+      }
+
+      if (*ptr == ',')
+      {
+	if (!rewrite_db_obs_syn_warn)
+	{
+	  warning("The comma-separated list of rewritings syntax is obsolete and "
+	          "discarded in 5.7\n");
+	  rewrite_db_obs_syn_warn= true;
+	}
+        *(ptr++)= 0;
+      }
+      else
+	*ptr= 0;
+
+      if (!*val)
+      {
+        sql_print_error("Bad syntax in rewrite-db: empty db-to!\n");
+        return 1;
+      }
+
+      if (!binlog_filter &&
+          !(binlog_filter= new Rpl_filter))
+      {
+        sql_print_error("Failed to create Rpl_filter\n");
+        return 1;
+      }
+
+      binlog_filter->add_db_rewrite(key, val);
+    } while (*ptr);
+    break;
+  }
   case 'v':
     if (argument == disabled_my_option)
       verbose= 0;
@@ -1457,7 +1624,17 @@ static Exit_status safe_connect()
 
   if (opt_default_auth && *opt_default_auth)
     mysql_options(mysql, MYSQL_DEFAULT_AUTH, opt_default_auth);
-
+  if (opt_compress)
+    mysql_options(mysql,MYSQL_OPT_COMPRESS,NullS);
+#ifdef HAVE_OPENSSL
+  if (opt_use_ssl)
+  {
+    mysql_ssl_set(mysql, opt_ssl_key, opt_ssl_cert, opt_ssl_ca,
+                  opt_ssl_capath, opt_ssl_cipher);
+  }
+  mysql_options(mysql,MYSQL_OPT_SSL_VERIFY_SERVER_CERT,
+                (char*)&opt_ssl_verify_server_cert);
+#endif
   if (opt_protocol)
     mysql_options(mysql, MYSQL_OPT_PROTOCOL, (char*) &opt_protocol);
 #ifdef HAVE_SMEM

@@ -302,7 +302,13 @@ const char *ha_partition::table_type() const
   // we can do this since we only support a single engine type
   return m_file[0]->table_type(); 
 }
-
+#ifdef WITH_WSREP
+int ha_partition::wsrep_db_type() const
+{ 
+  // we can do this since we only support a single engine type
+  return ha_legacy_type(m_file[0]->ht); 
+}
+#endif /* WITH_WSREP */
 
 /*
   Destructor method
@@ -1337,7 +1343,8 @@ bool ha_partition::is_crashed() const
 int ha_partition::prepare_new_partition(TABLE *tbl,
                                         HA_CREATE_INFO *create_info,
                                         handler *file, const char *part_name,
-                                        partition_element *p_elem)
+                                        partition_element *p_elem,
+                                        uint disable_non_uniq_indexes)
 {
   int error;
   DBUG_ENTER("prepare_new_partition");
@@ -1362,6 +1369,7 @@ int ha_partition::prepare_new_partition(TABLE *tbl,
   if ((error= file->ha_open(tbl, part_name, m_mode, m_open_test_lock)))
     goto error_open;
   DBUG_PRINT("info", ("partition %s opened", part_name));
+
   /*
     Note: if you plan to add another call that may return failure,
     better to do it before external_lock() as cleanup_new_partition()
@@ -1371,6 +1379,9 @@ int ha_partition::prepare_new_partition(TABLE *tbl,
   if ((error= file->ha_external_lock(ha_thd(), F_WRLCK)))
     goto error_external_lock;
   DBUG_PRINT("info", ("partition %s external locked", part_name));
+
+  if (disable_non_uniq_indexes)
+    file->ha_disable_indexes(HA_KEY_SWITCH_NONUNIQ_SAVE);
 
   DBUG_RETURN(0);
 error_external_lock:
@@ -1649,6 +1660,14 @@ int ha_partition::change_partitions(HA_CREATE_INFO *create_info,
       on them to prepare them for copy phase and also for later close
       calls
   */
+
+  /*
+     Before creating new partitions check whether indexes are disabled
+     in the  partitions.
+  */
+
+  uint disable_non_uniq_indexes = indexes_are_disabled();
+
   i= 0;
   part_count= 0;
   part_it.rewind();
@@ -1683,11 +1702,13 @@ int ha_partition::change_partitions(HA_CREATE_INFO *create_info,
           if ((error= prepare_new_partition(table, create_info,
                                             new_file_array[part],
                                             (const char *)part_name_buff,
-                                            sub_elem)))
+                                            sub_elem,
+                                            disable_non_uniq_indexes)))
           {
             cleanup_new_partition(part_count);
             DBUG_RETURN(error);
           }
+
           m_added_file[part_count++]= new_file_array[part];
         } while (++j < num_subparts);
       }
@@ -1700,11 +1721,13 @@ int ha_partition::change_partitions(HA_CREATE_INFO *create_info,
         if ((error= prepare_new_partition(table, create_info,
                                           new_file_array[i],
                                           (const char *)part_name_buff,
-                                          part_elem)))
+                                          part_elem,
+                                          disable_non_uniq_indexes)))
         {
           cleanup_new_partition(part_count);
           DBUG_RETURN(error);
         }
+
         m_added_file[part_count++]= new_file_array[i];
       }
     }
@@ -5381,7 +5404,7 @@ void ha_partition::return_top_record(uchar *buf)
 int ha_partition::handle_ordered_index_scan_key_not_found()
 {
   int error;
-  uint i;
+  uint i, old_elements= m_queue.elements;
   uchar *part_buf= m_ordered_rec_buffer;
   uchar *curr_rec_buf= NULL;
   DBUG_ENTER("ha_partition::handle_ordered_index_scan_key_not_found");
@@ -5416,9 +5439,12 @@ int ha_partition::handle_ordered_index_scan_key_not_found()
   bitmap_clear_all(&m_key_not_found_partitions);
   m_key_not_found= false;
 
-  /* Update m_top_entry, which may have changed. */
-  uchar *key_buffer= queue_top(&m_queue);
-  m_top_entry= uint2korr(key_buffer);
+  if (m_queue.elements > old_elements)
+  {
+    /* Update m_top_entry, which may have changed. */
+    uchar *key_buffer= queue_top(&m_queue);
+    m_top_entry= uint2korr(key_buffer);
+  }
   DBUG_RETURN(0);
 }
 
@@ -7468,19 +7494,29 @@ uint ha_partition::min_record_length(uint options) const
 
 int ha_partition::cmp_ref(const uchar *ref1, const uchar *ref2)
 {
-  uint part_id;
+  int cmp;
   my_ptrdiff_t diff1, diff2;
-  handler *file;
   DBUG_ENTER("ha_partition::cmp_ref");
+
+  cmp = m_file[0]->cmp_ref((ref1 + PARTITION_BYTES_IN_POS),
+			   (ref2 + PARTITION_BYTES_IN_POS));
+  if (cmp)
+    DBUG_RETURN(cmp);
 
   if ((ref1[0] == ref2[0]) && (ref1[1] == ref2[1]))
   {
-    part_id= uint2korr(ref1);
-    file= m_file[part_id];
-    DBUG_ASSERT(part_id < m_tot_parts);
-    DBUG_RETURN(file->cmp_ref((ref1 + PARTITION_BYTES_IN_POS),
-			      (ref2 + PARTITION_BYTES_IN_POS)));
+   /* This means that the references are same and are in same partition.*/
+    DBUG_RETURN(0);
   }
+
+  /*
+    In Innodb we compare with either primary key value or global DB_ROW_ID so
+    it is not possible that the two references are equal and are in different
+    partitions, but in myisam it is possible since we are comparing offsets.
+    Remove this assert if DB_ROW_ID is changed to be per partition.
+  */
+  DBUG_ASSERT(!m_innodb);
+
   diff1= ref2[1] - ref1[1];
   diff2= ref2[0] - ref1[0];
   if (diff1 > 0)

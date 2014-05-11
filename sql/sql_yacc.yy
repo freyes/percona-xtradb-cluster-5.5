@@ -1,5 +1,5 @@
 /*
-   Copyright (c) 2000, 2013, Oracle and/or its affiliates. All rights reserved.
+   Copyright (c) 2000, 2014, Oracle and/or its affiliates. All rights reserved.
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -26,8 +26,6 @@
 ** The type will be void*, so it must be  cast to (THD*) when used.
 ** Use the YYTHD macro for this.
 */
-#define YYPARSE_PARAM yythd
-#define YYLEX_PARAM yythd
 #define YYTHD ((THD *)yythd)
 #define YYLIP (& YYTHD->m_parser_state->m_lip)
 #define YYPS (& YYTHD->m_parser_state->m_yacc)
@@ -76,7 +74,7 @@ int yylex(void *yylval, void *yythd);
     ulong val= *(F);                          \
     if (my_yyoverflow((B), (D), &val))        \
     {                                         \
-      yyerror((char*) (A));                   \
+      yyerror(yythd, (char*) (A));            \
       return 2;                               \
     }                                         \
     else                                      \
@@ -174,7 +172,7 @@ void my_parse_error(const char *s)
   to abort from the parser.
 */
 
-void MYSQLerror(const char *s)
+void MYSQLerror(void *yythd, const char *s)
 {
   THD *thd= current_thd;
 
@@ -443,6 +441,13 @@ set_system_variable(THD *thd, struct sys_var_with_base *tmp,
   /* No AUTOCOMMIT from a stored function or trigger. */
   if (lex->spcont && tmp->var == Sys_autocommit_ptr)
     lex->sphead->m_flags|= sp_head::HAS_SET_AUTOCOMMIT_STMT;
+
+  if (val && val->type() == Item::FIELD_ITEM &&
+      ((Item_field*)val)->table_name)
+  {
+    my_error(ER_WRONG_TYPE_FOR_VAR, MYF(0), tmp->var->name.str);
+    return TRUE;
+  }
 
   if (! (var= new set_var(var_type, tmp->var, &tmp->base_name, val)))
     return TRUE;
@@ -780,7 +785,9 @@ static bool add_create_index (LEX *lex, Key::Keytype type,
 bool my_yyoverflow(short **a, YYSTYPE **b, ulong *yystacksize);
 %}
 
-%pure_parser                                    /* We have threads */
+%pure-parser                                    /* We have threads */
+%parse-param { void *yythd }
+%lex-param { void *yythd }
 /*
   Currently there are 168 shift/reduce conflicts.
   We should not introduce new conflicts any more.

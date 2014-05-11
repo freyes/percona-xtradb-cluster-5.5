@@ -1,4 +1,4 @@
-/* Copyright (c) 2002, 2013 Oracle and/or its affiliates. All rights reserved.
+/* Copyright (c) 2002, 2013, Oracle and/or its affiliates. All rights reserved.
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -217,7 +217,6 @@ uchar *sys_var::global_value_ptr(THD *thd, LEX_STRING *base)
 
 bool sys_var::check(THD *thd, set_var *var)
 {
-  do_deprecated_warning(thd);
   if ((var->value && do_check(thd, var))
       || (on_check && on_check(this, thd, var)))
   {
@@ -599,6 +598,7 @@ err:
 
 int set_var::check(THD *thd)
 {
+  var->do_deprecated_warning(thd);
   if (var->is_readonly())
   {
     my_error(ER_INCORRECT_GLOBAL_LOCAL_VAR, MYF(0), var->name.str, "read only");

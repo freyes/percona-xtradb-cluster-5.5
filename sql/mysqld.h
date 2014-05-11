@@ -1,4 +1,4 @@
-/* Copyright (c) 2006, 2012, Oracle and/or its affiliates. All rights reserved.
+/* Copyright (c) 2006, 2013, Oracle and/or its affiliates. All rights reserved.
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -65,11 +65,7 @@ typedef Bitmap<((MAX_INDEXES+7)/8*8)> key_map; /* Used for finding keys */
                                            some places */
 /* Function prototypes */
 void kill_mysql(void);
-#ifdef WITH_WSREP
-void close_connection(THD *thd, uint sql_errno= 0, bool lock=1);
-#else
 void close_connection(THD *thd, uint sql_errno= 0);
-#endif
 void handle_connection_in_main_thread(THD *thd);
 void create_thread_to_handle_connection(THD *thd);
 void unlink_thd(THD *thd);
@@ -148,6 +144,8 @@ extern ulong max_long_data_size;
 extern ulong current_pid;
 extern ulong expire_logs_days;
 extern ulong max_binlog_files;
+extern ulong max_slowlog_size;
+extern ulong max_slowlog_files;
 extern my_bool relay_log_recovery;
 extern uint sync_binlog_period, sync_relaylog_period, 
             sync_relayloginfo_period, sync_masterinfo_period;
@@ -472,7 +470,7 @@ enum options_mysqld
   OPT_WSREP_START_POSITION,
   OPT_WSREP_SST_AUTH,
   OPT_WSREP_RECOVER,
-#endif
+#endif /* WITH_WSREP */
   OPT_MAX_LONG_DATA_SIZE,
   OPT_SECURE_FILE_PRIV
 };
@@ -499,22 +497,13 @@ extern my_atomic_rwlock_t global_query_id_lock;
 void unireg_end(void) __attribute__((noreturn));
 
 /* increment query_id and return it.  */
-inline query_id_t next_query_id()
+inline __attribute__((warn_unused_result)) query_id_t next_query_id()
 {
   query_id_t id;
   my_atomic_rwlock_wrlock(&global_query_id_lock);
   id= my_atomic_add64(&global_query_id, 1);
   my_atomic_rwlock_wrunlock(&global_query_id_lock);
   return (id+1);
-}
-
-inline query_id_t get_query_id()
-{
-  query_id_t id;
-  my_atomic_rwlock_wrlock(&global_query_id_lock);
-  id= my_atomic_load64(&global_query_id);
-  my_atomic_rwlock_wrunlock(&global_query_id_lock);
-  return id;
 }
 
 void init_global_user_stats(void);

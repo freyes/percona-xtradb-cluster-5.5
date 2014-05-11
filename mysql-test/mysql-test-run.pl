@@ -1,7 +1,7 @@
 #!/usr/bin/perl
 # -*- cperl -*-
 
-# Copyright (c) 2004, 2013, Oracle and/or its affiliates. All rights reserved.
+# Copyright (c) 2004, 2014, Oracle and/or its affiliates. All rights reserved.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -164,7 +164,7 @@ our $opt_vs_config = $ENV{'MTR_VS_CONFIG'};
 
 # If you add a new suite, please check TEST_DIRS in Makefile.am.
 #
-my $DEFAULT_SUITES= "main,sys_vars,binlog,federated,rpl,innodb,perfschema";
+my $DEFAULT_SUITES= "main,sys_vars,binlog,federated,rpl,innodb,innodb_zip,perfschema";
 my $opt_suites;
 
 our $opt_verbose= 0;  # Verbose output, enable with --verbose
@@ -419,7 +419,6 @@ sub main {
     );
   mtr_error("Could not create testcase server port: $!") unless $server;
   my $server_port = $server->sockport();
-  mtr_report("Using server port $server_port");
 
   if ($opt_resfile) {
     resfile_init("$opt_vardir/mtr-results.txt");
@@ -477,15 +476,17 @@ sub main {
   # Send Ctrl-C to any children still running
   kill("INT", keys(%children));
 
-  # Wait for childs to exit
-  foreach my $pid (keys %children)
-  {
-    my $ret_pid= waitpid($pid, 0);
-    if ($ret_pid != $pid){
-      mtr_report("Unknown process $ret_pid exited");
-    }
-    else {
-      delete $children{$ret_pid};
+  if (!IS_WINDOWS) { 
+    # Wait for children to exit
+    foreach my $pid (keys %children)
+    {
+      my $ret_pid= waitpid($pid, 0);
+      if ($ret_pid != $pid){
+        mtr_report("Unknown process $ret_pid exited");
+      }
+      else {
+        delete $children{$ret_pid};
+      }
     }
   }
 
@@ -4364,7 +4365,7 @@ sub extract_warning_lines ($$) {
       {
 	# Remove initial timestamp and look for consecutive identical lines
 	my $line_pat= $line;
-	$line_pat =~ s/^[0-9: ]*//;
+	$line_pat =~ s/^[0-9:\-\+\.TZ ]*//;
 	if ($line_pat eq $last_pat) {
 	  $num_rep++;
 	} else {
@@ -4907,9 +4908,12 @@ sub mysqld_arguments ($$$) {
     {
       $found_skip_core= 1;
     }
-    elsif ($skip_binlog and mtr_match_prefix($arg, "--binlog-format"))
+#    elsif ($skip_binlog and mtr_match_prefix($arg, "--binlog-format"))
+#    {
+#      ; # Dont add --binlog-format when running without binlog
+#    }
+    elsif ($arg eq "--loose-skip-log-bin")
     {
-      ; # Dont add --binlog-format when running without binlog
     }
     elsif ($arg eq "--loose-skip-log-bin" and
            $mysqld->option("log-slave-updates"))
@@ -6013,7 +6017,7 @@ sub run_ctest() {
   # Special override: also ignore in Pushbuild, some platforms may not have it
   # Now, run ctest and collect output
   my $ctest_out= `ctest $ctest_vs 2>&1`;
-  if ($? == $no_ctest && $opt_ctest == -1 && ! defined $ENV{PB2WORKDIR}) {
+  if ($? == $no_ctest && ($opt_ctest == -1 || defined $ENV{PB2WORKDIR})) {
     chdir($olddir);
     return;
   }

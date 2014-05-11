@@ -354,7 +354,16 @@ bool wsrep_cluster_address_update (sys_var *self, THD* thd, enum_var_type type)
   bool wsrep_on_saved= thd->variables.wsrep_on;
   thd->variables.wsrep_on= false;
 
+  /* stop replication is heavy operation, and includes closing all client 
+     connections. Closing clients may need to get LOCK_global_system_variables
+     at least in MariaDB.
+
+     Note: releasing LOCK_global_system_variables may cause race condition, if 
+     there can be several concurrent clients changing wsrep_provider
+  */
+  mysql_mutex_unlock(&LOCK_global_system_variables);
   wsrep_stop_replication(thd);
+  mysql_mutex_lock(&LOCK_global_system_variables);
 
   if (wsrep_start_replication())
   {
@@ -466,17 +475,26 @@ void wsrep_node_address_init (const char* value)
 
 bool wsrep_slave_threads_check (sys_var *self, THD* thd, set_var* var)
 {
+  if (wsrep_slave_count_change != 0) {
+      WSREP_ERROR("Still closing existing threads - %d", abs(wsrep_slave_count_change));
+     push_warning_printf(thd, MYSQL_ERROR::WARN_LEVEL_WARN,
+                        ER_UNKNOWN_ERROR,
+                        "Still closing existing threads - %d",
+                        abs(wsrep_slave_count_change));
+      return true;
+  }
   mysql_mutex_lock(&LOCK_wsrep_slave_threads);
   wsrep_slave_count_change = var->value->val_int() - wsrep_slave_threads;
   mysql_mutex_unlock(&LOCK_wsrep_slave_threads);
 
-  return 0;
+  return false;
 }
 
 bool wsrep_slave_threads_update (sys_var *self, THD* thd, enum_var_type type)
 {
   if (wsrep_slave_count_change > 0)
   {
+    WSREP_DEBUG("Creating %d applier threads, total %ld", wsrep_slave_count_change, wsrep_slave_threads);
     wsrep_create_appliers(wsrep_slave_count_change);
     wsrep_slave_count_change = 0;
   }
@@ -485,16 +503,20 @@ bool wsrep_slave_threads_update (sys_var *self, THD* thd, enum_var_type type)
 
 bool wsrep_desync_check (sys_var *self, THD* thd, set_var* var)
 {
-  bool new_wsrep_desync = var->value->val_bool();
+  bool new_wsrep_desync = var->save_result.ulonglong_value; 
   if (wsrep_desync == new_wsrep_desync) {
     if (new_wsrep_desync) {
+      WSREP_DEBUG("wsrep_desync is already ON.");  
       push_warning (thd, MYSQL_ERROR::WARN_LEVEL_WARN,
                    ER_WRONG_VALUE_FOR_VAR,
                    "'wsrep_desync' is already ON.");
+      return true;
     } else {
+      WSREP_DEBUG("wsrep_desync is already OFF.");  
       push_warning (thd, MYSQL_ERROR::WARN_LEVEL_WARN,
                    ER_WRONG_VALUE_FOR_VAR,
                    "'wsrep_desync' is already OFF.");
+      return true;
     }
   }
   return 0;

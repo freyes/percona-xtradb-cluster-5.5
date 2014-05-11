@@ -1,6 +1,6 @@
 /*****************************************************************************
 
-Copyright (c) 1996, 2013, Oracle and/or its affiliates. All Rights Reserved.
+Copyright (c) 1996, 2014, Oracle and/or its affiliates. All Rights Reserved.
 
 This program is free software; you can redistribute it and/or modify it under
 the terms of the GNU General Public License as published by the Free Software
@@ -1694,9 +1694,6 @@ row_ins_scan_sec_index_for_duplicate(
 	dtuple_t*	entry,	/*!< in: index entry */
 	que_thr_t*	thr)	/*!< in: query thread */
 {
-#ifdef WITH_WSREP
-	trx_t*		trx = thr_get_trx(thr);
-#endif
 	ulint		n_unique;
 	ulint		i;
 	int		cmp;
@@ -1708,6 +1705,10 @@ row_ins_scan_sec_index_for_duplicate(
 	mem_heap_t*	heap		= NULL;
 	ulint		offsets_[REC_OFFS_NORMAL_SIZE];
 	ulint*		offsets		= offsets_;
+#ifdef WITH_WSREP
+	/* appliers don't need dupkey checks */
+	if (wsrep_thd_is_BF(thr_get_trx(thr)->mysql_thd, 0)) return(DB_SUCCESS);
+#endif /* WITH_WSREP */
 	rec_offs_init(offsets_);
 
 	n_unique = dict_index_get_n_unique(index);
@@ -1761,14 +1762,7 @@ row_ins_scan_sec_index_for_duplicate(
 			lock_type = LOCK_ORDINARY;
 		}
 
-#ifdef WITH_WSREP
-		/* slave applier must not get duplicate error */
-		if (allow_duplicates ||
-		    (wsrep_on(trx->mysql_thd) &&
-		     wsrep_thd_is_brute_force(trx->mysql_thd))) {
-#else
 		if (allow_duplicates) {
-#endif
 
 			/* If the SQL-query will update or replace
 			duplicate key we will take X-lock for
@@ -1884,13 +1878,7 @@ row_ins_duplicate_error_in_clust(
 			sure that in roll-forward we get the same duplicate
 			errors as in original execution */
 
-#ifdef WITH_WSREP
-			if (trx->duplicates ||
-			    (wsrep_on(trx->mysql_thd) && 
-			     wsrep_thd_is_brute_force(trx->mysql_thd))) {
-#else
 			if (trx->duplicates) {
-#endif
 
 				/* If the SQL-query will update or replace
 				duplicate key we will take X-lock for
@@ -1934,13 +1922,7 @@ row_ins_duplicate_error_in_clust(
 			offsets = rec_get_offsets(rec, cursor->index, offsets,
 						  ULINT_UNDEFINED, &heap);
 
-#ifdef WITH_WSREP
-			if (trx->duplicates ||
-			    (wsrep_on(trx->mysql_thd) && 
-			     wsrep_thd_is_brute_force(trx->mysql_thd))) {
-#else
 			if (trx->duplicates) {
-#endif
 
 				/* If the SQL-query will update or replace
 				duplicate key we will take X-lock for
@@ -2338,6 +2320,10 @@ row_ins_index_entry(
 	que_thr_t*	thr)	/*!< in: query thread */
 {
 	ulint	err;
+
+	DBUG_EXECUTE_IF("row_ins_index_entry_timeout", {
+			DBUG_SET("-d,row_ins_index_entry_timeout");
+			return(DB_LOCK_WAIT);});
 
 	if (foreign && UT_LIST_GET_FIRST(index->table->foreign_list)) {
 		err = row_ins_check_foreign_constraints(index->table, index,

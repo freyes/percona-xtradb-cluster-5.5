@@ -3912,6 +3912,12 @@ mysql_real_query(MYSQL *mysql, const char *query, ulong length)
   DBUG_ENTER("mysql_real_query");
   DBUG_PRINT("enter",("handle: 0x%lx", (long) mysql));
   DBUG_PRINT("query",("Query = '%-.4096s'",query));
+  DBUG_EXECUTE_IF("inject_ER_NET_READ_INTERRUPTED",
+		   {
+                     mysql->net.last_errno= ER_NET_READ_INTERRUPTED;
+                     DBUG_SET("-d,inject_ER_NET_READ_INTERRUPTED");
+                     DBUG_RETURN(1);
+                   });
 
   if (mysql_send_query(mysql,query,length))
     DBUG_RETURN(1);
@@ -4151,6 +4157,7 @@ mysql_options(MYSQL *mysql,enum mysql_option option, const void *arg)
     mysql->options.methods_to_use= option;
     break;
   case MYSQL_SET_CLIENT_IP:
+    my_free(mysql->options.client_ip);
     mysql->options.client_ip= my_strdup(arg, MYF(MY_WME));
     break;
   case MYSQL_SECURE_AUTH:

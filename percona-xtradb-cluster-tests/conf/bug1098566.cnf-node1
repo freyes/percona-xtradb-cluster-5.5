@@ -7,7 +7,6 @@ innodb_log_group_home_dir=/tmp/var-test/log1
 [xtrabackup]
 compress
 parallel=4
-encrypt-chunk-size=1073741824
 compress-threads=4
 encrypt-threads=4
 encrypt=AES256
@@ -15,6 +14,7 @@ encrypt-key=6F3AD9F428143F133FD7D50D77D91EA4
 
 
 [sst]
+compressor="gzip"
 streamfmt=xbstream
 encrypt=1
 sst-special-dirs=1

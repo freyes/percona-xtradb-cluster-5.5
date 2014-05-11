@@ -1,6 +1,6 @@
 /*****************************************************************************
 
-Copyright (c) 2000, 2013, Oracle and/or its affiliates. All Rights Reserved.
+Copyright (c) 2000, 2014, Oracle and/or its affiliates. All Rights Reserved.
 Copyright (c) 2008, 2009 Google Inc.
 Copyright (c) 2009, Percona Inc.
 
@@ -55,6 +55,7 @@ this program; if not, write to the Free Software Foundation, Inc.,
 #include <mysql/innodb_priv.h>
 #include <mysql/psi/psi.h>
 #include <my_sys.h>
+#include <my_check_opt.h>
 
 #ifdef MYSQL_SERVER
 #include <rpl_mi.h>
@@ -2995,7 +2996,8 @@ skip_relay:
 		internal_innobase_data_file_path);
 	if (ret == FALSE) {
 		sql_print_error(
-			"InnoDB: syntax error in innodb_data_file_path");
+			"InnoDB: syntax error in innodb_data_file_path"
+			" or size specified is less than 1 megabyte");
 mem_free_and_error:
 		srv_free_paths_and_sizes();
 		my_free(internal_innobase_data_file_path);
@@ -3171,8 +3173,8 @@ innobase_change_buffering_inited_ok:
 	if (innobase_fast_checksum) {
 		fprintf(stderr,
 			"InnoDB: Warning: innodb_fast_checksum is DEPRECATED "
-			"and *WILL* be removed in Percona Server 5.6. Please "
-			"consult the Percona Server 5.6 documentation for "
+			"and *WILL* be removed in Percona XtraDB Cluster 5.6. Please "
+			"consult the Percona XtraDB Cluster 5.6 documentation for "
 			"help in upgrading.\n");
 	}
 
@@ -4243,6 +4245,9 @@ ha_innobase::max_supported_key_length() const
 	is 16 kB; but currently MySQL does not work with keys whose
 	size is > MAX_KEY_LENGTH */
 #ifdef WITH_WSREP
+	/* this may look like obsolete code, but this ifdef is here
+	   just to make sure we will see bzr merge conflict, if Oracle 
+	   changes max key length */
 	return(3500);
 #else
 	return(3500);
@@ -5410,7 +5415,7 @@ wsrep_innobase_mysql_sort(
 
 		tmp_length = charset->coll->strnxfrm(charset, str, str_length,
 						     tmp_str, str_length);
-		DBUG_ASSERT(tmp_length == str_length);
+		DBUG_ASSERT(tmp_length <= str_length);
  
 		break;
 	}
@@ -6475,7 +6480,9 @@ ha_innobase::write_row(
 	     || sql_command == SQLCOM_CREATE_INDEX
 #ifdef WITH_WSREP
 	     || (wsrep_on(user_thd) && wsrep_load_data_splitting &&
-		 sql_command == SQLCOM_LOAD)
+		 sql_command == SQLCOM_LOAD                      &&
+		 !thd_test_options(
+			user_thd, OPTION_NOT_AUTOCOMMIT | OPTION_BEGIN))
 #endif /* WITH_WSREP */
 	     || sql_command == SQLCOM_DROP_INDEX)
 	    && num_write_row >= 10000) {
@@ -6524,7 +6531,8 @@ no_commit:
 			{
 			case WSREP_TRX_OK:
 				break;
-			case WSREP_TRX_ROLLBACK:
+			case WSREP_TRX_SIZE_EXCEEDED:
+			case WSREP_TRX_CERT_FAIL:
 			case WSREP_TRX_ERROR:
 				DBUG_RETURN(1);
 			}
@@ -6548,7 +6556,8 @@ no_commit:
 			{
 			case WSREP_TRX_OK:
 				break;
-			case WSREP_TRX_ROLLBACK:
+			case WSREP_TRX_SIZE_EXCEEDED:
+			case WSREP_TRX_CERT_FAIL:
 			case WSREP_TRX_ERROR:
 				DBUG_RETURN(1);
 			}
@@ -8331,6 +8340,13 @@ ha_innobase::wsrep_append_keys(
 	} else {
 		ut_a(table->s->keys <= 256);
 		uint i;
+		bool hasPK= false;
+
+		for (i=0; i<table->s->keys && !hasPK; ++i) {
+			KEY*  key_info	= table->key_info + i;
+			if (key_info->flags & HA_NOSAME) hasPK = true;
+		}
+
 		for (i=0; i<table->s->keys; ++i) {
 			uint  len;
 			char  keyval0[WSREP_MAX_SUPPORTED_KEY_LENGTH+1] = {'\0'};
@@ -8351,13 +8367,10 @@ ha_innobase::wsrep_append_keys(
 					   table->s->table_name.str, 
 					   key_info->name);
 			}
-			if (key_info->flags & HA_NOSAME ||
+			if (!hasPK || key_info->flags & HA_NOSAME ||
 			    ((tab &&
 			      dict_table_get_referenced_constraint(tab, idx)) ||
 			     (!tab && referenced_by_foreign_key()))) {
-
-				if (key_info->flags & HA_NOSAME || shared)
-			  		key_appended = true;
 
 				len = wsrep_store_key_val_for_row(
 					table, i, key0, key_info->key_length, 
@@ -8367,6 +8380,9 @@ ha_innobase::wsrep_append_keys(
 						thd, trx, table_share, table, 
 						keyval0, len+1, shared);
 					if (rcode) DBUG_RETURN(rcode);
+
+					if (key_info->flags & HA_NOSAME || shared)
+						key_appended = true;
 				}
 				else
 				{
@@ -9666,16 +9682,6 @@ innobase_rename_table(
 	error = row_rename_table_for_mysql(
 		norm_from, norm_to, trx, lock_and_commit);
 
-	if (error != DB_SUCCESS) {
-		FILE* ef = dict_foreign_err_file;
-
-		fputs("InnoDB: Renaming table ", ef);
-		ut_print_name(ef, trx, TRUE, norm_from);
-		fputs(" to ", ef);
-		ut_print_name(ef, trx, TRUE, norm_to);
-		fputs(" failed!\n", ef);
-	}
-
 	if (lock_and_commit) {
 		row_mysql_unlock_data_dictionary(trx);
 
@@ -9802,6 +9808,10 @@ ha_innobase::records_in_range(
 	/* There exists possibility of not being able to find requested
 	index due to inconsistency between MySQL and InoDB dictionary info.
 	Necessary message should have been printed in innobase_get_index() */
+	if (prebuilt->table->ibd_file_missing) {
+		n_rows = HA_POS_ERROR;
+		goto func_exit;
+	}
 	if (UNIV_UNLIKELY(!index)) {
 		n_rows = HA_POS_ERROR;
 		goto func_exit;
@@ -10525,8 +10535,7 @@ int
 ha_innobase::check(
 /*===============*/
 	THD*		thd,		/*!< in: user thread handle */
-	HA_CHECK_OPT*	check_opt)	/*!< in: check options, currently
-					ignored */
+	HA_CHECK_OPT*	check_opt)	/*!< in: check options */
 {
 	dict_index_t*	index;
 	ulint		n_rows;
@@ -10583,11 +10592,6 @@ ha_innobase::check(
 	do additional check */
 	prebuilt->table->corrupted = FALSE;
 
-	/* Enlarge the fatal lock wait timeout during CHECK TABLE. */
-	mutex_enter(&kernel_mutex);
-	srv_fatal_semaphore_wait_threshold += SRV_SEMAPHORE_WAIT_EXTENSION;
-	mutex_exit(&kernel_mutex);
-
 	for (index = dict_table_get_first_index(prebuilt->table);
 	     index != NULL;
 	     index = dict_table_get_next_index(index)) {
@@ -10600,20 +10604,41 @@ ha_innobase::check(
 
 		/* If this is an index being created, break */
 		if (*index->name == TEMP_INDEX_PREFIX) {
-			break;
-		}  else if (!btr_validate_index(index, prebuilt->trx)) {
-			is_ok = FALSE;
-
-			innobase_format_name(
-				index_name, sizeof index_name,
-				prebuilt->index->name, TRUE);
-
-			push_warning_printf(thd, MYSQL_ERROR::WARN_LEVEL_WARN,
-					    ER_NOT_KEYFILE,
-					    "InnoDB: The B-tree of"
-					    " index %s is corrupted.",
-					    index_name);
 			continue;
+		}
+		if (!(check_opt->flags & T_QUICK)) {
+			/* Enlarge the fatal lock wait timeout during
+			CHECK TABLE. */
+			mutex_enter(&kernel_mutex);
+			srv_fatal_semaphore_wait_threshold +=
+				SRV_SEMAPHORE_WAIT_EXTENSION;
+			mutex_exit(&kernel_mutex);
+
+			ibool	valid = TRUE;
+			valid = btr_validate_index(index, prebuilt->trx);
+
+			/* Restore the fatal lock wait timeout after
+			CHECK TABLE. */
+			mutex_enter(&kernel_mutex);
+			srv_fatal_semaphore_wait_threshold -=
+				SRV_SEMAPHORE_WAIT_EXTENSION;
+			mutex_exit(&kernel_mutex);
+
+			if (!valid) {
+				is_ok = FALSE;
+
+				innobase_format_name(
+					index_name, sizeof index_name,
+					index->name, TRUE);
+				push_warning_printf(thd,
+					MYSQL_ERROR::WARN_LEVEL_WARN,
+					ER_NOT_KEYFILE,
+					"InnoDB: The B-tree of"
+					" index %s is corrupted.",
+					index_name);
+
+				continue;
+			}
 		}
 
 		/* Instead of invoking change_active_index(), set up
@@ -10717,21 +10742,17 @@ ha_innobase::check(
 	/* Restore the original isolation level */
 	prebuilt->trx->isolation_level = old_isolation_level;
 
-	/* We validate also the whole adaptive hash index for all tables
-	at every CHECK TABLE */
+#if defined UNIV_AHI_DEBUG || defined UNIV_DEBUG
+	/* We validate the whole adaptive hash index for all tables
+	at every CHECK TABLE only when QUICK flag is not present. */
 
-	if (!btr_search_validate()) {
+	if (!(check_opt->flags & T_QUICK) && !btr_search_validate()) {
 		push_warning(thd, MYSQL_ERROR::WARN_LEVEL_WARN,
 			     ER_NOT_KEYFILE,
 			     "InnoDB: The adaptive hash index is corrupted.");
 		is_ok = FALSE;
 	}
-
-	/* Restore the fatal lock wait timeout after CHECK TABLE. */
-	mutex_enter(&kernel_mutex);
-	srv_fatal_semaphore_wait_threshold -= SRV_SEMAPHORE_WAIT_EXTENSION;
-	mutex_exit(&kernel_mutex);
-
+#endif /* defined UNIV_AHI_DEBUG || defined UNIV_DEBUG */
 	prebuilt->trx->op_info = "";
 	if (thd_killed(user_thd)) {
 		my_error(ER_QUERY_INTERRUPTED, MYF(0));
@@ -11622,6 +11643,7 @@ innodb_show_status(
 	const long		MAX_STATUS_SIZE = 1048576;
 	ulint			trx_list_start = ULINT_UNDEFINED;
 	ulint			trx_list_end = ULINT_UNDEFINED;
+	bool			ret_val;
 
 	DBUG_ENTER("innodb_show_status");
 	DBUG_ASSERT(hton == innodb_hton_ptr);
@@ -11686,12 +11708,13 @@ innodb_show_status(
 
 	mutex_exit(&srv_monitor_file_mutex);
 
-	stat_print(thd, innobase_hton_name, (uint) strlen(innobase_hton_name),
-		   STRING_WITH_LEN(""), str, flen);
+	ret_val= stat_print(thd, innobase_hton_name,
+				(uint) strlen(innobase_hton_name),
+				STRING_WITH_LEN(""), str, flen);
 
 	my_free(str);
 
-	DBUG_RETURN(FALSE);
+	DBUG_RETURN(ret_val);
 }
 
 /************************************************************************//**
@@ -12319,6 +12342,21 @@ ha_innobase::get_auto_increment(
 		ulonglong	next_value;
 
 		current = *first_value > col_max_value ? autoinc : *first_value;
+
+		/* If the increment step of the auto increment column
+		decreases then it is not affecting the immediate
+		next value in the series. */
+		if (prebuilt->autoinc_increment > increment) {
+
+			current = autoinc - prebuilt->autoinc_increment;
+
+			current = innobase_next_autoinc(
+				current, 1, increment, 1, col_max_value);
+
+			dict_table_autoinc_initialize(prebuilt->table, current);
+
+			*first_value = current;
+		}
 
 		/* Compute the last value in the interval */
 		next_value = innobase_next_autoinc(
@@ -13673,6 +13711,7 @@ wsrep_abort_slave_trx(wsrep_seqno_t bf_seqno, wsrep_seqno_t victim_seqno)
 		(long long)bf_seqno, (long long)victim_seqno);
 	abort();
 }
+
 int
 wsrep_innobase_kill_one_trx(void *bf_thd_ptr, trx_t *bf_trx, trx_t *victim_trx, ibool signal)
 {
@@ -14344,7 +14383,7 @@ static MYSQL_SYSVAR_ULONG(thread_concurrency, srv_thread_concurrency,
 static MYSQL_SYSVAR_ULONG(thread_sleep_delay, srv_thread_sleep_delay,
   PLUGIN_VAR_RQCMDARG,
   "Time of innodb thread sleeping before joining InnoDB queue (usec). Value 0 disable a sleep",
-  NULL, NULL, 10000L, 0L, ~0UL, 0);
+  NULL, NULL, 10000L, 0L, 1000000L, 0);
 
 static MYSQL_SYSVAR_STR(data_file_path, innobase_data_file_path,
   PLUGIN_VAR_RQCMDARG | PLUGIN_VAR_READONLY,
@@ -14364,7 +14403,11 @@ static MYSQL_SYSVAR_LONG(autoinc_lock_mode, innobase_autoinc_lock_mode,
   "1 => New style AUTOINC locking                            "
   "2 => No AUTOINC locking (unsafe for SBR)",
   NULL, NULL,
-  AUTOINC_NEW_STYLE_LOCKING,	/* Default setting */
+#ifdef WITH_WSREP
+  AUTOINC_NO_LOCKING,           /* Default setting: changed for galera Bug#1243228 */
+#else 
+  AUTOINC_NEW_STYLE_LOCKING,   /*  Default setting */
+#endif
   AUTOINC_OLD_STYLE_LOCKING,	/* Minimum value */
   AUTOINC_NO_LOCKING, 0);	/* Maximum value */
 

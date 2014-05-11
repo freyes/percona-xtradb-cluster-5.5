@@ -1,4 +1,4 @@
-/* Copyright (c) 2002, 2012, Oracle and/or its affiliates. All rights reserved.
+/* Copyright (c) 2002, 2013, Oracle and/or its affiliates. All rights reserved.
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -54,6 +54,9 @@
 TYPELIB bool_typelib={ array_elements(bool_values)-1, "", bool_values, 0 };
 
 #include "query_response_time.h" 
+
+#define MAX_CONNECTIONS 100000
+
 /*
   This forward declaration is needed because including sql_base.h
   causes further includes.  [TODO] Eliminate this forward declaration
@@ -347,6 +350,27 @@ static bool binlog_format_check(sys_var *self, THD *thd, set_var *var)
   if (check_has_super(self, thd, var))
     return true;
 
+#ifdef WITH_WSREP
+  /* Galera does not support STATEMENT or MIXED binlog
+  format currently */
+  if (WSREP(thd) &&
+     (var->save_result.ulonglong_value == BINLOG_FORMAT_STMT ||
+      var->save_result.ulonglong_value == BINLOG_FORMAT_MIXED))
+  {
+     WSREP_ERROR("PXC does not support binlog format : %s",
+                var->save_result.ulonglong_value == BINLOG_FORMAT_STMT ?
+                "STATEMENT" : "MIXED");
+    /* Push also warning, because error message is general */
+     push_warning_printf(thd, MYSQL_ERROR::WARN_LEVEL_WARN,
+                        ER_UNKNOWN_ERROR,
+                        "PXC does not support binlog format: %s",
+                        var->save_result.ulonglong_value == BINLOG_FORMAT_STMT ?
+                        "STATEMENT" : "MIXED");
+    if (var->type == OPT_GLOBAL)
+        return true;
+  }
+#endif
+
   if (var->type == OPT_GLOBAL)
     return false;
 
@@ -398,6 +422,9 @@ static bool fix_binlog_format_after_update(sys_var *self, THD *thd,
   return false;
 }
 
+/*
+  Bug#1243228 Changed from BINLOG_FORMAT_STMT to BINLOG_FORMAT_ROW here.
+*/
 static Sys_var_enum Sys_binlog_format(
        "binlog_format", "What form of binary logging the master will "
        "use: either ROW for row-based binary logging, STATEMENT "
@@ -409,7 +436,11 @@ static Sys_var_enum Sys_binlog_format(
        "MIXED, the format switches to row-based and back implicitly per each "
        "query accessing an NDBCLUSTER table",
        SESSION_VAR(binlog_format), CMD_LINE(REQUIRED_ARG, OPT_BINLOG_FORMAT),
+#ifdef WITH_WSREP
+       binlog_format_names, DEFAULT(BINLOG_FORMAT_ROW),
+#else 
        binlog_format_names, DEFAULT(BINLOG_FORMAT_STMT),
+#endif
        NO_MUTEX_GUARD, NOT_IN_BINLOG, ON_CHECK(binlog_format_check),
        ON_UPDATE(fix_binlog_format_after_update));
 
@@ -812,6 +843,24 @@ static Sys_var_ulong Sys_max_binlog_files(
        "Default is 0, don't limit.",
        GLOBAL_VAR(max_binlog_files),
        CMD_LINE(REQUIRED_ARG), VALID_RANGE(0, 102400), DEFAULT(0), BLOCK_SIZE(1));
+
+static Sys_var_ulong Sys_max_slowlog_size(
+       "max_slowlog_size",
+       "Slow query log will be rotated automatically when the size exceeds "
+       "this value. The default is 0, don't limit the size.",
+       GLOBAL_VAR(max_slowlog_size), CMD_LINE(REQUIRED_ARG),
+       VALID_RANGE(0, 1024*1024L*1024L), DEFAULT(0L),
+       BLOCK_SIZE(IO_SIZE));
+
+static Sys_var_ulong Sys_max_slowlog_files(
+       "max_slowlog_files",
+       "Maximum number of slow query log files. Used with --max-slowlog-size "
+       "this can be used to limit the total amount of disk space used for the "
+       "slow query log. "
+       "Default is 0, don't limit.",
+       GLOBAL_VAR(max_slowlog_files),
+       CMD_LINE(REQUIRED_ARG), VALID_RANGE(0, 102400),
+       DEFAULT(0), BLOCK_SIZE(1));
 
 static Sys_var_mybool Sys_flush(
        "flush", "Flush MyISAM tables to disk between SQL commands",
@@ -1241,7 +1290,7 @@ static bool fix_max_connections(sys_var *self, THD *thd, enum_var_type type)
 static Sys_var_ulong Sys_max_connections(
        "max_connections", "The number of simultaneous clients allowed",
        GLOBAL_VAR(max_connections), CMD_LINE(REQUIRED_ARG),
-       VALID_RANGE(1, 100000), DEFAULT(151), BLOCK_SIZE(1), NO_MUTEX_GUARD,
+       VALID_RANGE(1, MAX_CONNECTIONS), DEFAULT(151), BLOCK_SIZE(1), NO_MUTEX_GUARD,
        NOT_IN_BINLOG, ON_CHECK(0), ON_UPDATE(fix_max_connections));
 
 static Sys_var_ulong Sys_max_connect_errors(
@@ -1262,7 +1311,7 @@ static Sys_var_uint Sys_extra_port(
 static Sys_var_ulong Sys_extra_max_connections(
        "extra_max_connections", "The number of connections on extra-port",
        GLOBAL_VAR(extra_max_connections), CMD_LINE(REQUIRED_ARG),
-       VALID_RANGE(1, 100000), DEFAULT(1), BLOCK_SIZE(1), NO_MUTEX_GUARD,
+       VALID_RANGE(1, MAX_CONNECTIONS), DEFAULT(1), BLOCK_SIZE(1), NO_MUTEX_GUARD,
        NOT_IN_BINLOG, ON_CHECK(0), ON_UPDATE(fix_max_connections));
 
 static bool check_max_delayed_threads(sys_var *self, THD *thd, set_var *var)
@@ -1879,9 +1928,13 @@ static Sys_var_charptr Sys_socket(
 static Sys_var_ulong Sys_thread_concurrency(
        "thread_concurrency",
        "Permits the application to give the threads system a hint for "
-       "the desired number of threads that should be run at the same time",
+       "the desired number of threads that should be run at the same time."
+       "This variable has no effect, and is deprecated. "
+       "It will be removed in a future release.",
        READ_ONLY GLOBAL_VAR(concurrency), CMD_LINE(REQUIRED_ARG),
-       VALID_RANGE(1, 512), DEFAULT(DEFAULT_CONCURRENCY), BLOCK_SIZE(1));
+       VALID_RANGE(1, 512), DEFAULT(DEFAULT_CONCURRENCY), BLOCK_SIZE(1),
+       NO_MUTEX_GUARD, NOT_IN_BINLOG, ON_CHECK(0), ON_UPDATE(0),
+       DEPRECATED(""));
 
 static Sys_var_ulong Sys_thread_stack(
        "thread_stack", "The stack size for each thread",
@@ -2385,15 +2438,30 @@ static Sys_var_uint Sys_threadpool_high_prio_tickets(
   "thread_pool_high_prio_tickets",
   "Number of tickets to enter the high priority event queue for each "
   "transaction.",
-  GLOBAL_VAR(threadpool_high_prio_tickets), CMD_LINE(REQUIRED_ARG),
-  VALID_RANGE(0, UINT_MAX), DEFAULT(0), BLOCK_SIZE(1)
+  SESSION_VAR(threadpool_high_prio_tickets), CMD_LINE(REQUIRED_ARG),
+  VALID_RANGE(0, UINT_MAX), DEFAULT(UINT_MAX), BLOCK_SIZE(1)
 );
+
+static Sys_var_enum Sys_threadpool_high_prio_mode(
+  "thread_pool_high_prio_mode",
+  "High priority queue mode: one of 'transactions', 'statements' or 'none'. "
+  "In the 'transactions' mode the thread pool uses both high- and low-priority "
+  "queues depending on whether an event is generated by an already started "
+  "transaction and whether it has any high priority tickets (see "
+  "thread_pool_high_prio_tickets). In the 'statements' mode all events (i.e. "
+  "individual statements) always go to the high priority queue, regardless of "
+  "the current transaction state and high priority tickets. "
+  "'none' is the opposite of 'statements', i.e. disables the high priority queue "
+  "completely.",
+  SESSION_VAR(threadpool_high_prio_mode), CMD_LINE(REQUIRED_ARG),
+  threadpool_high_prio_mode_names, DEFAULT(TP_HIGH_PRIO_MODE_TRANSACTIONS));
+
 #endif /* !WIN32 */
 static Sys_var_uint Sys_threadpool_max_threads(
   "thread_pool_max_threads",
   "Maximum allowed number of worker threads in the thread pool",
    GLOBAL_VAR(threadpool_max_threads), CMD_LINE(REQUIRED_ARG),
-   VALID_RANGE(1, 65536), DEFAULT(500), BLOCK_SIZE(1),
+   VALID_RANGE(1, MAX_CONNECTIONS), DEFAULT(MAX_CONNECTIONS), BLOCK_SIZE(1),
    NO_MUTEX_GUARD, NOT_IN_BINLOG, ON_CHECK(0), 
    ON_UPDATE(fix_tp_max_threads)
 );
@@ -2615,7 +2683,9 @@ static bool fix_autocommit(sys_var *self, THD *thd, enum_var_type type)
     {
       thd->variables.option_bits&= ~OPTION_AUTOCOMMIT;
       thd->mdl_context.release_transactional_locks();
+#ifdef WITH_WSREP
       WSREP_DEBUG("autocommit, MDL TRX lock released: %lu", thd->thread_id);
+#endif /* WITH_WSREP */
       return true;
     }
     /*
@@ -3248,7 +3318,7 @@ static Sys_var_set Sys_log_slow_filter(
 static Sys_var_ulong sys_log_slow_rate_limit(
        "log_slow_rate_limit","Rate limit statement writes to slow log to only those from every (1/log_slow_rate_limit) session.",
        SESSION_VAR(log_slow_rate_limit), CMD_LINE(REQUIRED_ARG),
-       VALID_RANGE(1, ULONG_MAX), DEFAULT(1), BLOCK_SIZE(1));
+       VALID_RANGE(1, SLOG_SLOW_RATE_LIMIT_MAX), DEFAULT(1), BLOCK_SIZE(1));
 
 static double opt_slow_query_log_always_write_time;
 static bool update_slow_query_log_always_write_time(sys_var *self, THD *thd,
@@ -3346,8 +3416,9 @@ static bool update_slow_query_log_use_global_control(sys_var */*self*/, THD */*t
   if(opt_slow_query_log_use_global_control & (ULL(1) << SLOG_UG_ALL))
   {
     opt_slow_query_log_use_global_control=
-      SLOG_UG_LOG_SLOW_FILTER | SLOG_UG_LOG_SLOW_RATE_LIMIT | SLOG_UG_LOG_SLOW_VERBOSITY |
-      SLOG_UG_LONG_QUERY_TIME | SLOG_UG_MIN_EXAMINED_ROW_LIMIT;
+      (1ULL << SLOG_UG_LOG_SLOW_FILTER) | (1ULL << SLOG_UG_LOG_SLOW_RATE_LIMIT)
+      | (1ULL << SLOG_UG_LOG_SLOW_VERBOSITY) | (1ULL << SLOG_UG_LONG_QUERY_TIME)
+      | (1ULL << SLOG_UG_MIN_EXAMINED_ROW_LIMIT);
   }
   return false;
 }
@@ -3912,6 +3983,10 @@ static Sys_var_mybool Sys_wsrep_load_data_splitting(
        "transaction after every 10K rows inserted",
        GLOBAL_VAR(wsrep_load_data_splitting), 
        CMD_LINE(OPT_ARG), DEFAULT(TRUE));
+
+static Sys_var_mybool Sys_wsrep_restart_slave(
+       "wsrep_restart_slave", "Should MySQL slave be restarted automatically, when node joins back to cluster",
+       GLOBAL_VAR(wsrep_restart_slave), CMD_LINE(OPT_ARG), DEFAULT(FALSE));
 #endif /* WITH_WSREP */
 
 static Sys_var_ulong Sys_sp_cache_size(

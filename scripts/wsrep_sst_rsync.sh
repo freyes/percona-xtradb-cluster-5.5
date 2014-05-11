@@ -25,6 +25,9 @@ OS=$(uname)
 
 . $(dirname $0)/wsrep_sst_common
 
+# Setting the path for lsof on CentOS
+export PATH="/usr/sbin:/sbin:$PATH"
+
 cleanup_joiner()
 {
     wsrep_log_info "Joiner cleanup."
@@ -49,30 +52,47 @@ check_pid()
 check_pid_and_port()
 {
     local pid_file=$1
-    local rsync_pid=$(cat $pid_file)
-    local rsync_port=$2
+    local rsync_pid=$2
+    local rsync_port=$3
 
-    if [ "$OS" == "Darwin" -o "$OS" == "FreeBSD" ]; then
-        # no netstat --program(-p) option in Darwin and FreeBSD
-        check_pid $pid_file && \
-        lsof -i -Pn 2>/dev/null | \
-        grep "(LISTEN)" | grep ":$rsync_port" | grep -w '^rsync[[:space:]]\+'"$rsync_pid" >/dev/null
-    else
-        check_pid $pid_file && \
-        netstat -lnpt 2>/dev/null | \
-        grep LISTEN | grep \:$rsync_port | grep $rsync_pid/rsync >/dev/null
+    if [[ ! -x `which lsof` ]];then 
+        wsrep_log_error "lsof not found in path: $PATH"
+        exit 2 
     fi
+
+    local port_info=$(lsof -i :$rsync_port -Pn 2>/dev/null | \
+        grep "(LISTEN)")
+    local is_rsync=$(echo $port_info | \
+        grep -w '^rsync[[:space:]]\+'"$rsync_pid" 2>/dev/null)
+
+    if [ -n "$port_info" -a -z "$is_rsync" ]; then
+        wsrep_log_error "rsync daemon port '$rsync_port' has been taken"
+        exit 16 # EBUSY
+    fi
+    check_pid $pid_file && \
+        [ -n "$port_info" ] && [ -n "$is_rsync" ] && \
+        [ $(cat $pid_file) -eq $rsync_pid ]
 }
 
 MAGIC_FILE="$WSREP_SST_OPT_DATA/rsync_sst_complete"
 rm -rf "$MAGIC_FILE"
 
-SCRIPT_DIR=$(cd "$(dirname "$0")"; pwd -P)
-WSREP_LOG_DIR=${WSREP_LOG_DIR:-$($SCRIPT_DIR/my_print_defaults --defaults-file "$WSREP_SST_OPT_CONF" mysqld server mysqld-5.5 \
-	| grep -- '--innodb[-_]log[-_]group[-_]home[-_]dir=' | cut -b 29- )}
-if [ -n "${WSREP_LOG_DIR:-""}" ]; then
+WSREP_LOG_DIR=${WSREP_LOG_DIR:-""}
+
+# if WSREP_LOG_DIR env. variable is not set, try to get it from my.cnf
+if [ -z "$WSREP_LOG_DIR" ]; then
+    SCRIPT_DIR="$(cd $(dirname "$0"); pwd -P)"
+    WSREP_LOG_DIR=$($SCRIPT_DIR/my_print_defaults --defaults-file \
+                   "$WSREP_SST_OPT_CONF" mysqld server mysqld-5.5 \
+                    | grep -- '--innodb[-_]log[-_]group[-_]home[-_]dir=' \
+                    | cut -b 29- )
+fi
+
+if [ -n "$WSREP_LOG_DIR" ]; then
+    # handle both relative and absolute paths
     WSREP_LOG_DIR=$(cd $WSREP_SST_OPT_DATA; mkdir -p "$WSREP_LOG_DIR"; cd $WSREP_LOG_DIR; pwd -P)
 else
+    # default to datadir
     WSREP_LOG_DIR=$(cd $WSREP_SST_OPT_DATA; pwd -P)
 fi
 
@@ -158,7 +178,7 @@ then
         find . -maxdepth 1 -mindepth 1 -type d -print0 | xargs -I{} -0 -P $count \
              rsync --owner --group --perms --links --specials \
              --ignore-times --inplace --recursive --delete --quiet \
-	     $WHOLE_FILE_OPT --exclude '*/ib_logfile*' "$WSREP_SST_OPT_DATA"/{}/ \
+             $WHOLE_FILE_OPT --exclude '*/ib_logfile*' "$WSREP_SST_OPT_DATA"/{}/ \
              rsync://$WSREP_SST_OPT_ADDR/{} >&2 || RC=$?
 
         popd >/dev/null
@@ -208,8 +228,6 @@ then
     trap "exit 3"  INT TERM ABRT
     trap cleanup_joiner EXIT
 
-    MYUID=$(id -u)
-    MYGID=$(id -g)
     RSYNC_CONF="$WSREP_SST_OPT_DATA/$MODULE.conf"
 
 cat << EOF > "$RSYNC_CONF"
@@ -217,8 +235,6 @@ pid file = $RSYNC_PID
 use chroot = no
 read only = no
 timeout = 300
-uid = $MYUID
-gid = $MYGID
 [$MODULE]
     path = $WSREP_SST_OPT_DATA
 [$MODULE-log_dir]
@@ -228,9 +244,10 @@ EOF
 #    rm -rf "$DATA"/ib_logfile* # we don't want old logs around
 
     # listen at all interfaces (for firewalled setups)
-    rsync --daemon --port $RSYNC_PORT --config "$RSYNC_CONF"
+    rsync --daemon --no-detach --port $RSYNC_PORT --config "$RSYNC_CONF" &
+    RSYNC_REAL_PID=$!
 
-    until check_pid_and_port $RSYNC_PID $RSYNC_PORT
+    until check_pid_and_port $RSYNC_PID $RSYNC_REAL_PID $RSYNC_PORT
     do
         sleep 0.2
     done

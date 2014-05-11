@@ -3625,13 +3625,12 @@ Locked_tables_list::reopen_tables(THD *thd)
 
     share->table_map_id is given a value that with a high certainty is
     not used by any other table (the only case where a table id can be
-    reused is on wrap-around, which means more than 4 billion table
+    reused is on wrap-around, which means more than 2^48 table
     share opens have been executed while one table was open all the
     time).
 
-    share->table_map_id is not ~0UL.
- */
-static ulong last_table_id= ~0UL;
+*/
+static Table_id last_table_id;
 
 void assign_new_table_id(TABLE_SHARE *share)
 {
@@ -3642,18 +3641,14 @@ void assign_new_table_id(TABLE_SHARE *share)
   DBUG_ASSERT(share != NULL);
   mysql_mutex_assert_owner(&LOCK_open);
 
-  ulong tid= ++last_table_id;                   /* get next id */
-  /*
-    There is one reserved number that cannot be used.  Remember to
-    change this when 6-byte global table id's are introduced.
-  */
-  if (unlikely(tid == ~0UL))
-    tid= ++last_table_id;
-  share->table_map_id= tid;
-  DBUG_PRINT("info", ("table_id=%lu", tid));
+  DBUG_EXECUTE_IF("dbug_table_map_id_500", last_table_id= 500;);
+  DBUG_EXECUTE_IF("dbug_table_map_id_4B_UINT_MAX+501",
+                  last_table_id= 501ULL + UINT_MAX;);
+  DBUG_EXECUTE_IF("dbug_table_map_id_6B_UINT_MAX",
+                  last_table_id= (~0ULL >> 16););
 
-  /* Post conditions */
-  DBUG_ASSERT(share->table_map_id != ~0UL);
+  share->table_map_id= last_table_id++;
+  DBUG_PRINT("info", ("table_id=%llu", share->table_map_id.id()));
 
   DBUG_VOID_RETURN;
 }
@@ -5149,6 +5144,7 @@ restart:
        thd->lex->sql_command== SQLCOM_LOAD           ||
        thd->lex->sql_command== SQLCOM_DELETE)        &&
       wsrep_replicate_myisam                         &&
+      (*start)                                       &&
       (*start)->table && (*start)->table->file->ht->db_type == DB_TYPE_MYISAM)
     {
       WSREP_TO_ISOLATION_BEGIN(NULL, NULL, (*start));
@@ -9054,7 +9050,7 @@ bool mysql_notify_thread_having_shared_lock(THD *thd, THD *in_use,
 #ifdef WITH_WSREP
       {
 	signalled|= mysql_lock_abort_for_thread(thd, thd_table);
-	if (thd && WSREP(thd) && wsrep_thd_is_brute_force((void *)thd)) 
+	if (thd && WSREP(thd) && wsrep_thd_is_BF((void *)thd, true)) 
 	{
 	  WSREP_DEBUG("remove_table_from_cache: %llu",
 		      (unsigned long long) thd->real_id);
