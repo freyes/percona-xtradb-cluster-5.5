@@ -4,11 +4,9 @@ Description: make sure va_list usage is portable to fix FTBFS on ARM
 Reviewed-by: Nicholas Bamber <nicholas@periapt.co.uk>
 Last-Update: 2012-10-24
 
-Index: mysql-5.5-5.5.31+dfsg/sql-common/client_plugin.c
-===================================================================
---- mysql-5.5-5.5.31+dfsg.orig/sql-common/client_plugin.c	2013-03-25 06:14:58.000000000 -0700
-+++ mysql-5.5-5.5.31+dfsg/sql-common/client_plugin.c	2013-05-05 09:43:53.000000000 -0700
-@@ -233,11 +233,13 @@
+--- a/sql-common/client_plugin.c
++++ b/sql-common/client_plugin.c
+@@ -233,11 +233,13 @@ int mysql_client_plugin_init()
  {
    MYSQL mysql;
    struct st_mysql_client_plugin **builtin;
@@ -22,7 +20,7 @@ Index: mysql-5.5-5.5.31+dfsg/sql-common/client_plugin.c
  
    pthread_mutex_init(&LOCK_load_client_plugin, MY_MUTEX_INIT_SLOW);
    init_alloc_root(&mem_root, 128, 128);
-@@ -249,7 +251,7 @@
+@@ -249,7 +251,7 @@ int mysql_client_plugin_init()
    pthread_mutex_lock(&LOCK_load_client_plugin);
  
    for (builtin= mysql_client_builtins; *builtin; builtin++)
@@ -31,7 +29,7 @@ Index: mysql-5.5-5.5.31+dfsg/sql-common/client_plugin.c
  
    pthread_mutex_unlock(&LOCK_load_client_plugin);
  
-@@ -293,9 +295,13 @@
+@@ -293,9 +295,13 @@ struct st_mysql_client_plugin *
  mysql_client_register_plugin(MYSQL *mysql,
                               struct st_mysql_client_plugin *plugin)
  {
@@ -45,7 +43,7 @@ Index: mysql-5.5-5.5.31+dfsg/sql-common/client_plugin.c
    pthread_mutex_lock(&LOCK_load_client_plugin);
  
    /* make sure the plugin wasn't loaded meanwhile */
-@@ -307,7 +313,7 @@
+@@ -307,7 +313,7 @@ mysql_client_register_plugin(MYSQL *mysq
      plugin= NULL;
    }
    else
