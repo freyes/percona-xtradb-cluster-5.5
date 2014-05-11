@@ -1,4 +1,5 @@
-/* Copyright (c) 2000, 2012, Oracle and/or its affiliates. All rights reserved.
+/* Copyright (c) 2000, 2014, Oracle and/or its affiliates. All rights
+   reserved.
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -1864,7 +1865,7 @@ static struct passwd *check_user(const char *user)
   }
   if (!user)
   {
-    if (!opt_bootstrap)
+    if (!opt_bootstrap && !opt_help)
     {
       sql_print_error("Fatal error: Please read \"Security\" section of the manual to find out how to run mysqld as root!\n");
       unireg_abort(1);
@@ -2222,11 +2223,7 @@ static void network_init(void)
   @note
     For the connection that is doing shutdown, this is called twice
 */
-#ifdef WITH_WSREP
-void close_connection(THD *thd, uint sql_errno, bool lock)
-#else
 void close_connection(THD *thd, uint sql_errno)
-#endif
 {
   DBUG_ENTER("close_connection");
 
@@ -2435,8 +2432,13 @@ static bool cache_thread()
 bool one_thread_per_connection_end(THD *thd, bool put_in_cache)
 {
   DBUG_ENTER("one_thread_per_connection_end");
+  const bool not_applier = !thd->wsrep_applier;
   unlink_thd(thd);
+#ifdef WITH_WSREP
+  if (put_in_cache && not_applier)
+#else
   if (put_in_cache)
+#endif /* WITH_WSREP */
     put_in_cache= cache_thread();
   mysql_mutex_unlock(&LOCK_thread_count);
   if (put_in_cache)
@@ -2827,10 +2829,21 @@ pthread_handler_t signal_hand(void *arg __attribute__((unused)))
     should not be any other mysql_cond_signal() calls.
   */
   mysql_mutex_lock(&LOCK_thread_count);
-  mysql_mutex_unlock(&LOCK_thread_count);
   mysql_cond_broadcast(&COND_thread_count);
+  mysql_mutex_unlock(&LOCK_thread_count);
 
-  (void) pthread_sigmask(SIG_BLOCK,&set,NULL);
+  /*
+    Waiting for until mysqld_server_started != 0
+    to ensure that all server components has been successfully
+    initialized. This step is mandatory since signal processing
+    could be done safely only when all server components
+    has been initialized.
+  */
+  mysql_mutex_lock(&LOCK_server_started);
+  while (!mysqld_server_started)
+    mysql_cond_wait(&COND_server_started, &LOCK_server_started);
+  mysql_mutex_unlock(&LOCK_server_started);
+
   for (;;)
   {
     int error;					// Used when debugging
@@ -4508,22 +4521,11 @@ pthread_handler_t start_wsrep_THD(void *arg)
   /* from handle_one_connection... */
   pthread_detach_this_thread();
 
-// <5.1.17>
-#ifdef REMOVED
-  if (thread_scheduler.init_new_connection_thread())
-  {
-    close_connection(thd, ER_OUT_OF_RESOURCES);
-    statistic_increment(aborted_connects,&LOCK_status);
-    MYSQL_CALLBACK(thd->scheduler, end_thread, (thd, 0));
-    delete thd;
-    return 0;
-  }
-#endif
   mysql_thread_set_psi_id(thd->thread_id);
   thd->thr_create_utime= my_micro_time();
   if (MYSQL_CALLBACK_ELSE(thd->scheduler, init_new_connection_thread, (), 0))
   {
-    close_connection(thd, ER_OUT_OF_RESOURCES, 1);
+    close_connection(thd, ER_OUT_OF_RESOURCES);
     statistic_increment(aborted_connects,&LOCK_status);
     MYSQL_CALLBACK(thd->scheduler, end_thread, (thd, 0));
 
@@ -4546,20 +4548,13 @@ pthread_handler_t start_wsrep_THD(void *arg)
   thd->thread_stack= (char*) &thd;
   if (thd->store_globals())
   {
-    close_connection(thd, ER_OUT_OF_RESOURCES, 1);
+    close_connection(thd, ER_OUT_OF_RESOURCES);
     statistic_increment(aborted_connects,&LOCK_status);
     MYSQL_CALLBACK(thd->scheduler, end_thread, (thd, 0));
     delete thd;
 
     return(NULL);
   }
-
-  /* from handle_bootstrap() */
-#ifdef REMOVED
-  thd->security_ctx->priv_user=
-    thd->security_ctx->user= (char*) my_strdup("boot", MYF(MY_WME));
-  thd->security_ctx->priv_host[0]=0;
-#endif
 
   thd->system_thread= SYSTEM_THREAD_SLAVE_SQL;
   thd->security_ctx->skip_grants();
@@ -4577,16 +4572,17 @@ pthread_handler_t start_wsrep_THD(void *arg)
 
   mysql_mutex_lock(&LOCK_thread_count);
   wsrep_running_threads++;
-  mysql_cond_signal(&COND_thread_count);
+  mysql_cond_broadcast(&COND_thread_count);
   mysql_mutex_unlock(&LOCK_thread_count);
 
   processor(thd);
 
-  close_connection(thd, 0, 1);
+  close_connection(thd, 0);
 
   mysql_mutex_lock(&LOCK_thread_count);
   wsrep_running_threads--;
-  mysql_cond_signal(&COND_thread_count);
+  WSREP_DEBUG("wsrep running threads now: %lu", wsrep_running_threads);
+  mysql_cond_broadcast(&COND_thread_count);
   mysql_mutex_unlock(&LOCK_thread_count);
 
   // Note: We can't call THD destructor without crashing
@@ -4612,6 +4608,7 @@ pthread_handler_t start_wsrep_THD(void *arg)
     thread_count--;
     mysql_mutex_unlock(&LOCK_thread_count);
   }
+  my_thread_end();
   return(NULL);
 }
 
@@ -4689,23 +4686,6 @@ static bool have_client_connections()
     }
   }
   return false;
-}
-
-/*
-   returns the number of wsrep appliers running.
-   However, the caller (thd parameter) is not taken in account
- */
-static int have_wsrep_appliers(THD *thd)
-{
-  int ret= 0;
-  THD *tmp;
-
-  I_List_iterator<THD> it(threads);
-  while ((tmp=it++))
-  {
-    ret+= (tmp != thd && tmp->wsrep_applier);
-  }
-  return ret;
 }
 
 static void wsrep_close_thread(THD *thd)
@@ -4818,7 +4798,7 @@ void wsrep_close_client_connections(my_bool wait_to_end)
 	!is_replaying_connection(tmp))
     {
       WSREP_INFO("killing local connection: %ld",tmp->thread_id);
-      close_connection(tmp,0,0);
+      close_connection(tmp,0);
     }
 #endif
   }
@@ -4893,7 +4873,7 @@ void wsrep_wait_appliers_close(THD *thd)
 {
   /* Wait for wsrep appliers to gracefully exit */
   mysql_mutex_lock(&LOCK_thread_count);
-  while (have_wsrep_appliers(thd) > 1)
+  while (wsrep_running_threads > 1)
   // 1 is for rollbacker thread which needs to be killed explicitly.
   // This gotta be fixed in a more elegant manner if we gonna have arbitrary
   // number of non-applier wsrep threads.
@@ -4913,7 +4893,7 @@ void wsrep_wait_appliers_close(THD *thd)
   wsrep_close_threads (thd);
   /* and wait for them to die */
   mysql_mutex_lock(&LOCK_thread_count);
-  while (have_wsrep_appliers(thd) > 0)
+  while (wsrep_running_threads > 0)
   {
    if (thread_handling > SCHEDULER_ONE_THREAD_PER_CONNECTION)
     {
@@ -5711,7 +5691,7 @@ default_service_handling(char **argv,
 
   /* We have to quote filename if it contains spaces */
   pos= add_quoted_string(path_and_service, file_path, end);
-  if (*extra_opt)
+  if (extra_opt && *extra_opt)
   {
     /* 
      Add option after file_path. There will be zero or one extra option.  It's 
@@ -6006,11 +5986,7 @@ void create_thread_to_handle_connection(THD *thd)
       my_snprintf(error_message_buff, sizeof(error_message_buff),
                   ER_THD(thd, ER_CANT_CREATE_THREAD), error);
       net_send_error(thd, ER_CANT_CREATE_THREAD, error_message_buff, NULL);
-#ifdef WITH_WSREP
-      close_connection(thd,0,0);
-#else
       close_connection(thd);
-#endif
       mysql_mutex_lock(&LOCK_thread_count);
       delete thd;
       mysql_mutex_unlock(&LOCK_thread_count);
@@ -6053,11 +6029,7 @@ static void create_new_thread(THD *thd)
     mysql_mutex_unlock(&LOCK_connection_count);
 
     DBUG_PRINT("error",("Too many connections"));
-#ifdef WITH_WSREP
-    close_connection(thd, ER_CON_COUNT_ERROR, 1);
-#else
     close_connection(thd, ER_CON_COUNT_ERROR);
-#endif
     if (global_system_variables.log_warnings)
     {
       sql_print_warning("%s", ER_DEFAULT(ER_CON_COUNT_ERROR));
@@ -6452,11 +6424,7 @@ pthread_handler_t handle_connections_namedpipes(void *arg)
       {
         sql_print_warning("%s", ER_DEFAULT(ER_OUT_OF_RESOURCES));
       }
-#ifdef WITH_WSREP
-      close_connection(thd, ER_OUT_OF_RESOURCES, 1);
-#else
       close_connection(thd, ER_OUT_OF_RESOURCES);
-#endif
       delete thd;
       continue;
     }
@@ -6655,11 +6623,7 @@ pthread_handler_t handle_connections_shared_memory(void *arg)
       {
         sql_print_warning("%s", ER_DEFAULT(ER_OUT_OF_RESOURCES));
       }
-#ifdef WITH_WSREP
-      close_connection(thd, ER_OUT_OF_RESOURCES, 1);
-#else
       close_connection(thd, ER_OUT_OF_RESOURCES);
-#endif
       errmsg= 0;
       goto errorconn;
     }

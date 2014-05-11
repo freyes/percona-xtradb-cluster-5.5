@@ -1,4 +1,4 @@
-/* Copyright (c) 2000, 2011, Oracle and/or its affiliates. All rights reserved.
+/* Copyright (c) 2000, 2013, Oracle and/or its affiliates. All rights reserved.
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -1818,7 +1818,8 @@ ulong acl_get(const char *host, const char *ip,
 
   copy_length= (size_t) (strlen(ip ? ip : "") +
                  strlen(user ? user : "") +
-                 strlen(db ? db : ""));
+                 strlen(db ? db : "")) + 2; /* Added 2 at the end to avoid  
+                                               buffer overflow at strmov()*/
   /*
     Make sure that strmov() operations do not result in buffer overflow.
   */
@@ -5254,7 +5255,8 @@ bool check_grant_db(THD *thd,const char *db)
   size_t copy_length;
 
   copy_length= (size_t) (strlen(sctx->priv_user ? sctx->priv_user : "") +
-                 strlen(db ? db : ""));
+                 strlen(db ? db : "")) + 1; /* Added 1 at the end to avoid  
+                                               buffer overflow at strmov()*/
 
   /*
     Make sure that strmov() operations do not result in buffer overflow.
@@ -9852,6 +9854,12 @@ acl_authenticate(THD *thd, uint connect_errors, uint com_change_user_pkt_len)
   }
 
   server_mpvio_update_thd(thd, &mpvio);
+
+  if (mpvio.make_it_fail)
+  {
+    mpvio.status= MPVIO_EXT::FAILURE;
+    res= CR_ERROR;
+  }
 
   Security_context *sctx= thd->security_ctx;
   const ACL_USER *acl_user= mpvio.acl_user;

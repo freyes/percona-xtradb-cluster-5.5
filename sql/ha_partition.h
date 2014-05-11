@@ -270,7 +270,8 @@ private:
   void cleanup_new_partition(uint part_count);
   int prepare_new_partition(TABLE *table, HA_CREATE_INFO *create_info,
                             handler *file, const char *part_name,
-                            partition_element *p_elem);
+                            partition_element *p_elem,
+                            uint disable_non_uniq_indexes);
   /*
     delete_table, rename_table and create uses very similar logic which
     is packed into this routine.
@@ -1155,6 +1156,9 @@ public:
     -------------------------------------------------------------------------
     virtual void append_create_info(String *packet)
   */
+#ifdef WITH_WSREP
+    virtual int wsrep_db_type() const;
+#endif /* WITH_WSREP */
 };
 
 #endif /* HA_PARTITION_INCLUDED */

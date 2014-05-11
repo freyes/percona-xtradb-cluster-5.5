@@ -1,0 +1,90 @@
+percona-server-5.5 (5.5.37-rel35.0) unstable; urgency=low
+
+  * Fixed provides/breaks/replaces for client/server debian packages
+
+ -- Tomislav Plavcic <tomislav.plavcic@percona.com>  Sat, 26 Apr 2014 15:54:31 +0200
+
+percona-server-5.5 (5.5.36-rel34.2) unstable; urgency=low
+
+  * Release 5.5.36-34.2
+  * Added UDF and HandlerSocket
+  * Reverted change of location from /usr/share/percona-server to /usr/share/mysql
+
+ -- Alexey Bychko <alexey.bychko@percona.com>  Tue, 25 Mar 2014 11:04:59 +0100
+
+percona-server-5.5 (5.5.36-rel34.1) unstable; urgency=low
+
+  * Release 5.5.36-34.1
+
+ -- Alexey Bychko <alexey.bychko@percona.com>  Tue, 17 Mar 2014 10:57:09 +0100
+
+percona-server-5.5 (5.5.36-rel34.0) unstable; urgency=low
+
+  * Release 5.5.36-34.0
+  * Resolved: Multiple arch installation of libmysqlclient18 broken
+
+ -- Alexey Bychko <alexey.bychko@percona.com>  Tue, 10 Mar 2014 10:44:46 +0100
+
+percona-server-5.5 (5.5.35-rel33.0) unstable; urgency=low
+
+  * Release 5.5.35-33.0
+
+ -- Ignacio Nin <ignacio.nin@percona.com>  Fri, 20 Dec 2013 10:40:29 +0100
+
+percona-server-5.5 (5.5.34-rel32.0) unstable; urgency=low
+
+  * Release 5.5.34-32.0
+  * Resolved: apt-upgrading percona-server fails in post-installation
+  * Resolved: libmysqlclient18-dev doesn't provide libmysqlclient-dev
+
+ -- Ignacio Nin <ignacio.nin@percona.com>  Mon, 28 Oct 2013 10:31:09 +0100
+
+percona-server-5.5 (5.5.33-rel31.1) unstable; urgency=low
+
+  * Remove the info entry for mysql.info, which was pointless.
+  * Do not package the libmysqlclient18.so links in the library package.
+  * Add a manual link from the libmysqlclient_r fully versioned library
+    to the libmysqlclient fully versioned library. The one cmake(1)
+    installs goes to the non-fully versioned one ant it seems impossible
+    to change at the CMakeLists.txt level in an easy way.
+  * Added --error-handler=: to dh_installinit in order to
+    avoid an error when the server wouldn't start for any
+    reasons other than bad installation.
+
+ -- Ignacio Nin <ignacio.nin@percona.com>  Tue,  1 Oct 2013 17:00:00 -0300
+
+percona-server-5.5 (5.5.13-rel20.4) unstable; urgency=low
+
+  * Update versions to 5.5.13
+
+ -- Ignacio Nin <ignacio.nin@percona.com>  Tue, 28 Jun 2011 19:27:30 -0300
+
+percona-server-5.5 (5.5.12-rel20.3) unstable; urgency=low
+
+  * Update versions to 5.5.12
+
+ -- Ignacio Nin <ignacio.nin@percona.com>  Tue, 17 May 2011 18:57:45 -0300
+
+percona-server-5.5 (5.5.11-rel20.2) unstable; urgency=low
+
+  * Update versions to 5.5.11
+
+ -- Ignacio Nin <ignacio.nin@percona.com>  Sun, 17 Apr 2011 13:17:02 -0300
+
+percona-server-5.5 (5.5.10-rc20.1) unstable; urgency=low
+
+  * Update versions to 5.5.10
+
+ -- Ignacio Nin <ignacio.nin@percona.com>  Sun, 3 Apr 2011 12:51:03 -0300
+
+percona-server-5.5 (5.5.9-20.1) unstable; urgency=low
+
+  * Update packaging to 5.5.9.
+
+ -- Ignacio Nin <ignacio.nin@percona.com>  Fri, 25 Mar 2011 15:23:04 -0300
+
+percona-server-5.5 (5.5.8-20.0-1) unstable; urgency=low
+
+  * Initial release (Closes: #609883)
+
+ -- Aleksandr Kuzminsky <aleksandr.kuzminsky@percona.com>  Tue, 11 Jan 2011 07:17:08 -0800

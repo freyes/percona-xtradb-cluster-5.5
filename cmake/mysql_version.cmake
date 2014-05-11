@@ -1,4 +1,4 @@
-# Copyright (c) 2009, 2012, Oracle and/or its affiliates. All rights reserved.
+# Copyright (c) 2009, 2014, Oracle and/or its affiliates. All rights reserved.
 # 
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -18,6 +18,7 @@
 #
 
 SET(SHARED_LIB_MAJOR_VERSION "18")
+SET(SHARED_LIB_MINOR_VERSION "0")
 SET(PROTOCOL_VERSION "10")
 SET(DOT_FRM_VERSION "6")
 
@@ -95,19 +96,19 @@ IF(NOT CPACK_PACKAGE_FILE_NAME)
 ENDIF()
 
 IF(NOT CPACK_SOURCE_PACKAGE_FILE_NAME)
-  SET(CPACK_SOURCE_PACKAGE_FILE_NAME "mysql-${VERSION}")
+    SET(CPACK_SOURCE_PACKAGE_FILE_NAME "Percona-XtraDB-Cluster-${VERSION}")
   IF("${VERSION}" MATCHES "-ndb-")
     STRING(REGEX REPLACE "^.*-ndb-" "" NDBVERSION "${VERSION}")
     SET(CPACK_SOURCE_PACKAGE_FILE_NAME "mysql-cluster-gpl-${NDBVERSION}")
   ENDIF()
 ENDIF()
-SET(CPACK_PACKAGE_CONTACT "MySQL Release Engineering <mysql-build@oss.oracle.com>")
-SET(CPACK_PACKAGE_VENDOR "Oracle Corporation")
+SET(CPACK_PACKAGE_CONTACT "Percona Engineering <mysql-dev@percona.com>")
+SET(CPACK_PACKAGE_VENDOR "Percona")
 SET(CPACK_SOURCE_GENERATOR "TGZ")
 INCLUDE(cpack_source_ignore_files)
 
 # Defintions for windows version resources
-SET(PRODUCTNAME "MySQL Server")
+SET(PRODUCTNAME "Percona XtraDB Cluster")
 SET(COMPANYNAME ${CPACK_PACKAGE_VENDOR})
 
 # Windows 'date' command has unpredictable output, so cannot rely on it to

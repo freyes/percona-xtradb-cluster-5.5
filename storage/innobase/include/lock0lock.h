@@ -459,6 +459,16 @@ lock_sec_rec_cons_read_sees(
 					by a read cursor */
 	const read_view_t*	view);	/*!< in: consistent read view */
 /*********************************************************************//**
+Check if there are any locks (table or rec) against table.
+@return	TRUE if locks exist */
+UNIV_INLINE
+ibool
+lock_table_has_locks(
+/*=================*/
+	const dict_table_t*	table);	/*!< in: check if there are any locks
+					held on records in this table or on the
+					table itself */
+/*********************************************************************//**
 Locks the specified database table in the mode given. If the lock cannot
 be granted immediately, the query thread is put to wait.
 @return	DB_SUCCESS, DB_LOCK_WAIT, DB_DEADLOCK, or DB_QUE_THR_SUSPENDED */
@@ -800,7 +810,6 @@ lock_rec_get_page_no(
 				record */
 #define LOCK_CONV_BY_OTHER 4096 /*!< this bit is set when the lock is created
 				by other transaction */
-#define WSREP_BF		8192
 #if (LOCK_WAIT|LOCK_GAP|LOCK_REC_NOT_GAP|LOCK_INSERT_INTENTION|LOCK_CONV_BY_OTHER)&LOCK_MODE_MASK
 # error
 #endif

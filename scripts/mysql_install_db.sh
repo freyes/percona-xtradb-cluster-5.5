@@ -1,5 +1,5 @@
 #!/bin/sh
-# Copyright (c) 2000, 2011, Oracle and/or its affiliates. All rights reserved.
+# Copyright (c) 2000, 2013, Oracle and/or its affiliates. All rights reserved.
 # 
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -269,16 +269,16 @@ then
     cannot_find_file mysqld $basedir/libexec $basedir/sbin $basedir/bin
     exit 1
   fi
-  langdir=`find_in_basedir --dir errmsg.sys share/english share/mysql/english`
+  langdir=`find_in_basedir --dir errmsg.sys share/english share/percona-xtradb-cluster/english share/mysql/english`
   if test -z "$langdir"
   then
-    cannot_find_file errmsg.sys $basedir/share/english $basedir/share/mysql/english
+    cannot_find_file errmsg.sys $basedir/share/english $basedir/share/percona-xtradb-cluster/english $basedir/share/mysql/english
     exit 1
   fi
-  pkgdatadir=`find_in_basedir --dir fill_help_tables.sql share share/mysql`
+  pkgdatadir=`find_in_basedir --dir fill_help_tables.sql share share/percona-xtradb-cluster share/mysql`
   if test -z "$pkgdatadir"
   then
-    cannot_find_file fill_help_tables.sql $basedir/share $basedir/share/mysql
+    cannot_find_file fill_help_tables.sql $basedir/share $basedir/share/percona-xtradb-cluster $basedir/share/mysql
     exit 1
   fi
   scriptdir="$basedir/scripts"
@@ -426,8 +426,8 @@ else
   echo "describes problems on your OS.  Another information source are the"
   echo "MySQL email archives available at http://lists.mysql.com/."
   echo
-  echo "Please check all of the above before mailing us!  And remember, if"
-  echo "you do mail us, you MUST use the $scriptdir/mysqlbug script!"
+  echo "Please check all of the above before submitting a bug report at"
+  echo "  https://bugs.launchpad.net/percona-xtradb-cluster/+filebug"
   echo
   exit 1
 fi
@@ -478,7 +478,8 @@ then
   fi
 
   echo
-  echo "Please report any problems with the $scriptdir/mysqlbug script!"
+  echo "Please report any problems at"
+  echo "  https://bugs.launchpad.net/percona-xtradb-cluster/+filebug"
   echo
   echo "Percona recommends that all production deployments be protected with a support"
   echo "contract (http://www.percona.com/mysql-suppport/) to ensure the highest uptime,"

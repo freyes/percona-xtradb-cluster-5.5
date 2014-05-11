@@ -105,6 +105,7 @@ enum enum_log_slow_filter {
   SLOG_F_TMP_TABLE, SLOG_F_TMP_DISK, SLOG_F_FILESORT,
   SLOG_F_FILESORT_DISK
 };
+#define SLOG_SLOW_RATE_LIMIT_MAX	1000
 enum enum_log_warnings_suppress { log_warnings_suppress_1592 };
 enum enum_slave_exec_mode { SLAVE_EXEC_MODE_STRICT,
                             SLAVE_EXEC_MODE_IDEMPOTENT,
@@ -581,6 +582,8 @@ typedef struct system_variables
   my_bool expand_fast_index_creation;
   my_bool pseudo_slave_mode;
 
+  uint  threadpool_high_prio_tickets;
+  ulong threadpool_high_prio_mode;
 } SV;
 
 
@@ -1604,6 +1607,7 @@ public:
   String  packet;			// dynamic buffer for network I/O
   String  convert_buffer;               // buffer for charset conversions
   struct  rand_struct rand;		// used for authentication
+  struct  rand_struct slog_rand;	// used for random slow log filtering
   struct  system_variables variables;	// Changeable local variables
   struct  system_status_var status_var; // Per thread statistic vars
   struct  system_status_var *initial_status_var; /* used by show status */
@@ -3756,11 +3760,13 @@ public:
   bool get(TABLE *table);
   static double get_use_cost(uint *buffer, uint nkeys, uint key_size, 
                              ulonglong max_in_memory_size);
+
+  // Returns the number of bytes needed in imerge_cost_buf.
   inline static int get_cost_calc_buff_size(ulong nkeys, uint key_size, 
                                             ulonglong max_in_memory_size)
   {
     register ulonglong max_elems_in_tree=
-      (1 + max_in_memory_size / ALIGN_SIZE(sizeof(TREE_ELEMENT)+key_size));
+      (max_in_memory_size / ALIGN_SIZE(sizeof(TREE_ELEMENT)+key_size));
     return (int) (sizeof(uint)*(1 + nkeys/max_elems_in_tree));
   }
 
@@ -3967,7 +3973,9 @@ public:
 /**
   Skip the increase of the global query id counter. Commonly set for
   commands that are stateless (won't cause any change on the server
-  internal states).
+  internal states). This is made obsolete as query id is incremented for
+  ping and statistics commands as well because of race condition 
+  (Bug#58785).
 */
 #define CF_SKIP_QUERY_ID        (1U << 0)
 

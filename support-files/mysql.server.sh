@@ -22,7 +22,7 @@
 # Default-Start:  2 3 4 5
 # Default-Stop: 0 1 6
 # Short-Description: start and stop MySQL (Percona XtraDB Cluster)
-# Description: Percona-Server is a SQL database engine with focus on high performance.
+# Description: Percona-XtraDB-Cluster is a cluster based on Galera.
 ### END INIT INFO
  
 # If you install MySQL on some other places than @prefix@, then you
@@ -406,6 +406,17 @@ case "$mode" in
     fi
     ;;
 
+  'restart-bootstrap')
+    # Stop the service and regardless of whether it was
+    # running or not, start it again.
+    if $0 stop  $other_args; then
+      $0 bootstrap-pxc $other_args
+    else
+      log_failure_msg "Failed to stop running server, so refusing to try to start."
+      exit 1
+    fi
+    ;;
+
   'reload'|'force-reload')
     if test -s "$mysqld_pid_file_path" ; then
       read mysqld_pid <  "$mysqld_pid_file_path"
@@ -429,7 +440,7 @@ case "$mode" in
   *)
       # usage
       basename=`basename "$0"`
-      echo "Usage: $basename {start|stop|restart|reload|force-reload|status|bootstrap-pxc}  [ MySQL (Percona XtraDB Cluster) options ]"
+      echo "Usage: $basename {start|stop|restart|restart-bootstrap|reload|force-reload|status|bootstrap-pxc}  [ MySQL (Percona XtraDB Cluster) options ]"
       exit 1
     ;;
 esac

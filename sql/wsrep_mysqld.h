@@ -96,6 +96,8 @@ extern my_bool     wsrep_replicate_myisam;
 extern my_bool     wsrep_log_conflicts;
 extern ulong       wsrep_mysql_replication_bundle;
 extern my_bool     wsrep_load_data_splitting;
+extern my_bool     wsrep_restart_slave;
+extern my_bool     wsrep_restart_slave_activated;
 
 enum enum_wsrep_OSU_method { WSREP_OSU_TOI, WSREP_OSU_RSU };
 enum enum_wsrep_reject_types { WSREP_REJ_NONE, WSREP_REJ_ALL, WSREP_REJ_ALL_KILL };
@@ -229,8 +231,9 @@ extern void wsrep_ready_wait();
 
 enum wsrep_trx_status {
     WSREP_TRX_OK,
-    WSREP_TRX_ROLLBACK,
-    WSREP_TRX_ERROR,
+    WSREP_TRX_CERT_FAIL,      /* certification failure, must abort */
+    WSREP_TRX_SIZE_EXCEEDED,  /* trx size exceeded */
+    WSREP_TRX_ERROR,          /* native mysql error */
 };
 
 extern enum wsrep_trx_status
@@ -267,6 +270,7 @@ extern wsrep_aborting_thd_t wsrep_aborting_thd;
 extern my_bool       wsrep_emulate_bin_log;
 extern int           wsrep_to_isolation;
 
+#ifdef HAVE_PSI_INTERFACE
 extern PSI_mutex_key key_LOCK_wsrep_ready;
 extern PSI_mutex_key key_COND_wsrep_ready;
 extern PSI_mutex_key key_LOCK_wsrep_sst;
@@ -281,7 +285,7 @@ extern PSI_mutex_key key_LOCK_wsrep_replaying;
 extern PSI_cond_key  key_COND_wsrep_replaying;
 extern PSI_mutex_key key_LOCK_wsrep_slave_threads;
 extern PSI_mutex_key key_LOCK_wsrep_desync;
-
+#endif /* HAVE_PSI_INTERFACE */
 struct TABLE_LIST;
 int wsrep_to_isolation_begin(THD *thd, char *db_, char *table_,
                              const TABLE_LIST* table_list);

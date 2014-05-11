@@ -1,6 +1,6 @@
 #ifndef SET_VAR_INCLUDED
 #define SET_VAR_INCLUDED
-/* Copyright (c) 2002, 2013 Oracle and/or its affiliates. All rights reserved.
+/* Copyright (c) 2002, 2013, Oracle and/or its affiliates. All rights reserved.
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -151,6 +151,7 @@ public:
     return (option.id != -1) && (m_parse_flag & parse_flags) &&
            insert_dynamic(array, (uchar*)&option);
   }
+  void do_deprecated_warning(THD *thd);
 
 private:
   virtual bool do_check(THD *thd, set_var *var) = 0;
@@ -164,7 +165,7 @@ private:
   virtual void global_save_default(THD *thd, set_var *var) = 0;
   virtual bool session_update(THD *thd, set_var *var) = 0;
   virtual bool global_update(THD *thd, set_var *var) = 0;
-  void do_deprecated_warning(THD *thd);
+
 protected:
   /**
     A pointer to a value of the variable for SHOW.

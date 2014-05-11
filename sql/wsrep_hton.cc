@@ -77,8 +77,13 @@ void wsrep_register_hton(THD* thd, bool all)
       {
         trans_register_ha(thd, all, wsrep_hton);
 
-        /* follow innodb read/write settting */
-        if (i->is_trx_read_write())
+        /* follow innodb read/write settting
+         * but, as an exception: CTAS with empty result set will not be 
+         * replicated unless we declare wsrep hton as read/write here
+	 */
+        if (i->is_trx_read_write() || 
+            (thd->lex->sql_command == SQLCOM_CREATE_TABLE &&
+             thd->wsrep_exec_mode == LOCAL_STATE))
         {
           thd->ha_data[wsrep_hton->slot].ha_info[all].set_trx_read_write();
         }
@@ -134,7 +139,7 @@ wsrep_close_connection(handlerton*  hton, THD* thd)
   - certification test or an equivalent. As a result,
     the current transaction just rolls back
     Error codes:
-           WSREP_TRX_ROLLBACK, WSREP_TRX_ERROR
+           WSREP_TRX_CERT_FAIL, WSREP_TRX_SIZE_EXCEEDED, WSREP_TRX_ERROR
   - a post-certification failure makes this server unable to
     commit its own WS and therefore the server must abort
 */
@@ -155,14 +160,7 @@ static int wsrep_prepare(handlerton *hton, THD *thd, bool all)
       !thd_test_options(thd, OPTION_NOT_AUTOCOMMIT | OPTION_BEGIN)) &&
       (thd->variables.wsrep_on && !wsrep_trans_cache_is_empty(thd)))
   {
-    switch (wsrep_run_wsrep_commit(thd, hton, all))
-    {
-    case WSREP_TRX_OK:
-      break;
-    case WSREP_TRX_ROLLBACK:
-    case WSREP_TRX_ERROR:
-      DBUG_RETURN(1);
-    }
+    DBUG_RETURN (wsrep_run_wsrep_commit(thd, hton, all));
   }
   DBUG_RETURN(0);
 }
@@ -317,7 +315,7 @@ wsrep_run_wsrep_commit(THD *thd, handlerton *hton, bool all)
       WSREP_INFO("innobase_commit, abort %s",
                  (thd->query()) ? thd->query() : "void");
     }
-    DBUG_RETURN(WSREP_TRX_ROLLBACK);
+    DBUG_RETURN(WSREP_TRX_CERT_FAIL);
   }
 
   mysql_mutex_lock(&LOCK_wsrep_replaying);
@@ -368,7 +366,7 @@ wsrep_run_wsrep_commit(THD *thd, handlerton *hton, bool all)
     mysql_mutex_unlock(&thd->LOCK_wsrep_thd);
     WSREP_DEBUG("innobase_commit abort after replaying wait %s",
                 (thd->query()) ? thd->query() : "void");
-    DBUG_RETURN(WSREP_TRX_ROLLBACK);
+    DBUG_RETURN(WSREP_TRX_CERT_FAIL);
   }
 
   thd->wsrep_query_state = QUERY_COMMITTING;
@@ -381,7 +379,7 @@ wsrep_run_wsrep_commit(THD *thd, handlerton *hton, bool all)
     rcode = wsrep_write_cache(wsrep, thd, cache, &data_len);
     if (WSREP_OK != rcode) {
       WSREP_ERROR("rbr write fail, data_len: %zu, %d", data_len, rcode);
-      DBUG_RETURN(WSREP_TRX_ROLLBACK);
+      DBUG_RETURN(WSREP_TRX_SIZE_EXCEEDED);
     }
   }
 
@@ -506,13 +504,19 @@ wsrep_run_wsrep_commit(THD *thd, handlerton *hton, bool all)
     }
     mysql_mutex_unlock(&thd->LOCK_wsrep_thd);
 
-    DBUG_RETURN(WSREP_TRX_ROLLBACK);
+    DBUG_RETURN(WSREP_TRX_CERT_FAIL);
 
+  case WSREP_SIZE_EXCEEDED:
+    WSREP_ERROR("transaction size exceeded");
+    mysql_mutex_unlock(&thd->LOCK_wsrep_thd);
+    DBUG_RETURN(WSREP_TRX_SIZE_EXCEEDED);
   case WSREP_CONN_FAIL:
     WSREP_ERROR("connection failure");
+    mysql_mutex_unlock(&thd->LOCK_wsrep_thd);
     DBUG_RETURN(WSREP_TRX_ERROR);
   default:
     WSREP_ERROR("unknown connection failure");
+    mysql_mutex_unlock(&thd->LOCK_wsrep_thd);
     DBUG_RETURN(WSREP_TRX_ERROR);
   }
 

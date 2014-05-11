@@ -1202,6 +1202,9 @@ THD::THD()
   tablespace_op=FALSE;
   tmp= sql_rnd_with_mutex();
   randominit(&rand, tmp + (ulong) &rand, tmp + (ulong) ::global_query_id);
+  randominit(&slog_rand, tmp + (ulong) &slog_rand, tmp + (ulong) ::global_query_id);
+  DBUG_EXECUTE_IF("seed_slow_log_random",
+                  randominit(&slog_rand, 0x11111111, 0x77777777););
   substitute_null_with_insert_id = FALSE;
   thr_lock_info_init(&lock_info); /* safety: will be reset after start */
 #ifdef WITH_WSREP
@@ -5112,7 +5115,7 @@ THD::binlog_prepare_pending_rows_event(TABLE* table, uint32 serv_id,
 {
   DBUG_ENTER("binlog_prepare_pending_rows_event");
   /* Pre-conditions */
-  DBUG_ASSERT(table->s->table_map_id != ~0UL);
+  DBUG_ASSERT(table->s->table_map_id.is_valid());
 
   /* Fetch the type code for the RowsEventT template parameter */
   int const type_code= RowsEventT::TYPE_CODE;
