@@ -26,6 +26,7 @@ percona-xtradb-cluster-5.5 (5.5.37-25.10+dfsg-1) unstable; urgency=medium
     - d/patches/fix-implicit-conversion.patch
     - d/patches/patch-sql_sql__yacc.yy
   * d/patches/*: Refreshed remaining patches.
+  * d/rules: Update for new upstream release versions.
 
  -- James Page <james.page@ubuntu.com>  Sun, 11 May 2014 10:52:14 -0400
 
