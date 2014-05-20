@@ -28,7 +28,7 @@ percona-xtradb-cluster-5.5 (5.5.37-25.10+dfsg-1) unstable; urgency=medium
   * d/patches/*: Refreshed remaining patches.
   * d/rules: Update for new upstream release versions.
 
- -- James Page <james.page@ubuntu.com>  Sun, 11 May 2014 10:52:14 -0400
+ -- James Page <james.page@ubuntu.com>  Tue, 20 May 2014 09:00:41 +0100
 
 percona-xtradb-cluster-5.5 (5.5.34-25.9+dfsg-0ubuntu4) trusty; urgency=medium
 
