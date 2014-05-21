@@ -1,0 +1,220 @@
+# Translation of percona-xtradb-cluster-5.5's debconf messages to Portuguese
+# Percona XtraDB Cluster Templates
+# Copyright (C) 2013, Canonical Ltd
+# This file is distributed under the same license as the percona-xtradb-cluster-server-5.5 package.
+#
+# Américo Monteiro <a_monteiro@gmx.com>, 2014.
+msgid ""
+msgstr ""
+"Project-Id-Version: percona-xtradb-cluster-5.5 5.5.34-25.9+dfsg-1\n"
+"Report-Msgid-Bugs-To: percona-xtradb-cluster-5.5@packages.debian.org\n"
+"POT-Creation-Date: 2014-01-13 08:58+0000\n"
+"PO-Revision-Date: 2014-05-21 00:18+0100\n"
+"Last-Translator: Américo Monteiro <a_monteiro@gmx.com>\n"
+"Language-Team: Portuguese <traduz@debianpt.org>\n"
+"Language: pt\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"X-Generator: Lokalize 1.4\n"
+
+#. Type: boolean
+#. Description
+#: ../percona-xtradb-cluster-server-5.5.templates:2001
+msgid "Really proceed with downgrade?"
+msgstr "Prosseguir realmente com o retrocesso de versão (downgrade)?"
+
+#. Type: boolean
+#. Description
+#: ../percona-xtradb-cluster-server-5.5.templates:2001
+msgid "A file named /var/lib/mysql/debian-*.flag exists on this system."
+msgstr "Existe neste sistema um ficheiro chamado /var/lib/mysql/debian-*.flag."
+
+#. Type: boolean
+#. Description
+#: ../percona-xtradb-cluster-server-5.5.templates:2001
+msgid ""
+"Such file is an indication that a mysql-server package with a higher version "
+"has been installed earlier."
+msgstr ""
+"Tal ficheiro é um indicador que um pacote mysql-server com uma versão "
+"superior esteve instalado anteriormente."
+
+#. Type: boolean
+#. Description
+#: ../percona-xtradb-cluster-server-5.5.templates:2001
+msgid ""
+"There is no guarantee that the version you're currently installing will be "
+"able to use the current databases."
+msgstr ""
+"Não há garantias que a versão que você está a instalar agora seja capaz "
+"de usar as bases de dados actuais."
+
+#. Type: note
+#. Description
+#: ../percona-xtradb-cluster-server-5.5.templates:3001
+msgid "Important note for NIS/YP users"
+msgstr "Nota importante para utilizadores de NIS/YP"
+
+#. Type: note
+#. Description
+#: ../percona-xtradb-cluster-server-5.5.templates:3001
+msgid ""
+"To use MySQL, the following entries for users and groups should be added to "
+"the system:"
+msgstr ""
+"Para usar MySQL, devem ser adicionadas ao sistema as seguintes entradas "
+"para utilizadores e grupos:"
+
+#. Type: note
+#. Description
+#: ../percona-xtradb-cluster-server-5.5.templates:3001
+msgid ""
+"You should also check the permissions and the owner of the /var/lib/mysql "
+"directory:"
+msgstr ""
+"Você também deve verificar as permissões e o dono do directório "
+"/var/lib/mysql:"
+
+#. Type: boolean
+#. Description
+#: ../percona-xtradb-cluster-server-5.5.templates:4001
+msgid "Remove all Percona Server databases?"
+msgstr "Remover todas as bases de dados do Servidor Percona?"
+
+#. Type: boolean
+#. Description
+#: ../percona-xtradb-cluster-server-5.5.templates:4001
+msgid ""
+"The /var/lib/mysql directory which contains the Percona Server databases is "
+"about to be removed."
+msgstr ""
+"O directório /var/lib/mysql que contém as bases de dados do servidor Percona "
+"está prestes a ser removido."
+
+#. Type: boolean
+#. Description
+#: ../percona-xtradb-cluster-server-5.5.templates:4001
+msgid ""
+"If you're removing the Percona Server package in order to later install a "
+"more recent version or if a different mysql-server package is already using "
+"it, the data should be kept."
+msgstr ""
+"Se você está a remover o pacote do Servidor Percona de modo a mais tarde "
+"instalar uma versão mais recente ou se um outro pacote mysql-server diferente "
+"está a usá-los, os dados devem ser mantidos."
+
+#. Type: boolean
+#. Description
+#: ../percona-xtradb-cluster-server-5.5.templates:5001
+msgid "Start the Percona Server daemon on boot?"
+msgstr "Iniciar o daemon do Servidor Percona no arranque da máquina?"
+
+#. Type: boolean
+#. Description
+#: ../percona-xtradb-cluster-server-5.5.templates:5001
+msgid ""
+"The Percona Server daemon can be launched automatically at boot time or "
+"manually with the '/etc/init.d/mysql start' command."
+msgstr ""
+"O daemon do Servidor Percona pode ser iniciado automaticamente durante "
+"o arranque da máquina ou manualmente com o comando '/etc/init.d/mysql start'."
+
+#. Type: password
+#. Description
+#: ../percona-xtradb-cluster-server-5.5.templates:6001
+msgid "New password for the Percona Server \"root\" user:"
+msgstr "Nova palavra passe para o utilizador \"root\" do Servidor Percona:"
+
+#. Type: password
+#. Description
+#: ../percona-xtradb-cluster-server-5.5.templates:6001
+msgid ""
+"While not mandatory, it is highly recommended that you set a password for "
+"the Percona Server administrative \"root\" user."
+msgstr ""
+"Apesar de não obrigatório, é altamente recomendado que defina uma palavra "
+"passe para o utilizador \"root\" que administra o Servidor Percona."
+
+#. Type: password
+#. Description
+#: ../percona-xtradb-cluster-server-5.5.templates:6001
+msgid "If that field is left blank, the password will not be changed."
+msgstr "Se esse campo for deixado vazio, a palavra passe não será alterada."
+
+#. Type: password
+#. Description
+#: ../percona-xtradb-cluster-server-5.5.templates:7001
+msgid "Repeat password for the Percona Server \"root\" user:"
+msgstr "Repita a palavra passe para o utilizador \"root\" do Servidor Percona:"
+
+#. Type: error
+#. Description
+#: ../percona-xtradb-cluster-server-5.5.templates:8001
+msgid "Unable to set password for the Percona Server \"root\" user"
+msgstr ""
+"Incapaz de definir a palavra passe para o utilizador \"root\" do Servidor "
+"Percona."
+
+#. Type: error
+#. Description
+#: ../percona-xtradb-cluster-server-5.5.templates:8001
+msgid ""
+"An error occurred while setting the password for the Percona Server "
+"administrative user. This may have happened because the account already has "
+"a password, or because of a communication problem with the Percona Server "
+"daemon."
+msgstr ""
+"Ocorreu um erro ao definir a palavra passe para o utilizador administrador "
+"do Servidor Percona. Isto pode ter ocorrido porque a conta pode já ter uma "
+"palavra passe, ou devido a um problema de comunicação com o daemon do "
+"Servidor Percona."
+
+#. Type: error
+#. Description
+#: ../percona-xtradb-cluster-server-5.5.templates:8001
+msgid "You should check the account's password after the package installation."
+msgstr ""
+"Você deve verificar a palavra passe da conta após a instalação do pacote."
+
+#. Type: error
+#. Description
+#: ../percona-xtradb-cluster-server-5.5.templates:8001
+msgid ""
+"Please read the /usr/share/doc/mysql-server-5.5/README.Debian file for more "
+"information."
+msgstr ""
+"Por favor leia o ficheiro /usr/share/doc/mysql-server-5.5/README.Debian "
+"para mais informação."
+
+#. Type: error
+#. Description
+#: ../percona-xtradb-cluster-server-5.5.templates:9001
+msgid "Password input error"
+msgstr "Erro na introdução da palavra passe"
+
+#. Type: error
+#. Description
+#: ../percona-xtradb-cluster-server-5.5.templates:9001
+msgid "The two passwords you entered were not the same. Please try again."
+msgstr ""
+"As duas palavras passe que inseriu não são iguais. Por favor tente de novo."
+
+#. Type: error
+#. Description
+#: ../percona-xtradb-cluster-server-5.5.templates:10001
+msgid "NDB Cluster seems to be in use"
+msgstr "O Cluster NDB parece estar a ser usado"
+
+#. Type: error
+#. Description
+#: ../percona-xtradb-cluster-server-5.5.templates:10001
+msgid ""
+"Percona-Server-5.5 has orphaned NDB Cluster support. Please migrate to the "
+"new mysql-cluster package and remove all lines starting with \"ndb\" from "
+"all config files below /etc/mysql/."
+msgstr ""
+"O Percona-Server-5.5 abandonou o suporte a Cluster NDB. Por favor migre "
+"para novo pacote mysql-cluster e remova todas as linhas que começam com "
+"\"ndb\" de todos os ficheiros de configuração para lá de /etc/mysql/."

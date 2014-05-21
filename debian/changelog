@@ -1,3 +1,10 @@
+percona-xtradb-cluster-5.5 (5.5.37-25.10+dfsg-2) UNRELEASED; urgency=medium
+
+  [ Américo Monteiro ]
+  * Portuguese translation for debconf messages (Closes: #748812).
+
+ -- James Page <james.page@ubuntu.com>  Wed, 21 May 2014 12:23:30 +0100
+
 percona-xtradb-cluster-5.5 (5.5.37-25.10+dfsg-1) unstable; urgency=medium
 
   * New upstream release, including the following security updates:
