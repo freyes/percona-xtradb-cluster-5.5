@@ -124,7 +124,7 @@ Architecture: any
 Suggests: netcat-openbsd, pv, qpress, tinyca
 Depends:
  adduser (>= 3.40),
- iproute,
+ iproute2,
  libdbd-mysql-perl,
  libdbi-perl,
  lsb-base (>= 3.0-10),
