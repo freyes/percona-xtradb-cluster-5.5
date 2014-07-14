@@ -6,8 +6,11 @@ percona-xtradb-cluster-5.5 (5.5.37-25.10+dfsg-2) UNRELEASED; urgency=medium
   [ Christian Perrier ]
   * French translation for debconf messages (Closes: #748884).
 
-  [ Vitory ]
+  [ Victory ]
   * Japanese translation for debconf messages (Closes: #750769).
+
+  [ Helge Kreutzmann ]
+  * German translation for debconf messages (Closes: #751573).
 
   [ James Page ]
   * d/control: Update Maintainer to pkg-mysql-maint (Closes: #750073, #753748).
