@@ -1,0 +1,211 @@
+# Percona XtraDB Cluster Templates
+# Copyright (C) 2013, Canonical Ltd
+# This file is distributed under the same license as the percona-xtradb-cluster-server-5.5 package.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: percona-xtradb-cluster-5.5\n"
+"Report-Msgid-Bugs-To: percona-xtradb-cluster-5.5@packages.debian.org\n"
+"POT-Creation-Date: 2014-01-13 08:58+0000\n"
+"PO-Revision-Date: 2014-01-13 17:58+0900\n"
+"Last-Translator: victory <victory.deb@gmail.com>\n"
+"Language-Team: Debian Japanese <debian-japanese@lists.debian.org>\n"
+"Language: ja\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#. Type: boolean
+#. Description
+#: ../percona-xtradb-cluster-server-5.5.templates:2001
+msgid "Really proceed with downgrade?"
+msgstr "本当にダウングレードを実行しますか?"
+
+#. Type: boolean
+#. Description
+#: ../percona-xtradb-cluster-server-5.5.templates:2001
+msgid "A file named /var/lib/mysql/debian-*.flag exists on this system."
+msgstr ""
+"このシステムには /var/lib/mysql/debian-*.flag という名前のファイルが存在して"
+"います。"
+
+#. Type: boolean
+#. Description
+#: ../percona-xtradb-cluster-server-5.5.templates:2001
+msgid ""
+"Such file is an indication that a mysql-server package with a higher version "
+"has been installed earlier."
+msgstr ""
+"このファイルが意味するのは、以前により新しいバージョンの mysql-server パッ"
+"ケージがインストールされていたことを示します。"
+
+#. Type: boolean
+#. Description
+#: ../percona-xtradb-cluster-server-5.5.templates:2001
+msgid ""
+"There is no guarantee that the version you're currently installing will be "
+"able to use the current databases."
+msgstr ""
+"このデータベースを現在インストールしようとしているバージョンで使えるかどうか"
+"は保証できません。"
+
+#. Type: note
+#. Description
+#: ../percona-xtradb-cluster-server-5.5.templates:3001
+msgid "Important note for NIS/YP users"
+msgstr "NIS/YP ユーザへの重要な注意"
+
+#. Type: note
+#. Description
+#: ../percona-xtradb-cluster-server-5.5.templates:3001
+msgid ""
+"To use MySQL, the following entries for users and groups should be added to "
+"the system:"
+msgstr ""
+"MySQL を使うにはシステムに以下のユーザやグループを追加する必要があります。"
+
+#. Type: note
+#. Description
+#: ../percona-xtradb-cluster-server-5.5.templates:3001
+msgid ""
+"You should also check the permissions and the owner of the /var/lib/mysql "
+"directory:"
+msgstr "/var/lib/mysql の所有者権限をチェックする必要もあります。"
+
+#. Type: boolean
+#. Description
+#: ../percona-xtradb-cluster-server-5.5.templates:4001
+msgid "Remove all Percona Server databases?"
+msgstr "すべての Percona Server データベースを削除しますか?"
+
+#. Type: boolean
+#. Description
+#: ../percona-xtradb-cluster-server-5.5.templates:4001
+msgid ""
+"The /var/lib/mysql directory which contains the Percona Server databases is "
+"about to be removed."
+msgstr ""
+"Percona Server データベースを含んでいるディレクトリ /var/lib/mysql を削除しよ"
+"うとしています。"
+
+#. Type: boolean
+#. Description
+#: ../percona-xtradb-cluster-server-5.5.templates:4001
+msgid ""
+"If you're removing the Percona Server package in order to later install a "
+"more recent version or if a different mysql-server package is already using "
+"it, the data should be kept."
+msgstr ""
+"後でより新しいバージョンのものをインストールしようとするために Percona "
+"Server パッケージを削除しようとしている、あるいは別の mysql-server パッケージ"
+"を既に使っている場合、データは保持する必要があります。"
+
+#. Type: boolean
+#. Description
+#: ../percona-xtradb-cluster-server-5.5.templates:5001
+msgid "Start the Percona Server daemon on boot?"
+msgstr "ブート時に Percona Server デーモンを開始させますか?"
+
+#. Type: boolean
+#. Description
+#: ../percona-xtradb-cluster-server-5.5.templates:5001
+msgid ""
+"The Percona Server daemon can be launched automatically at boot time or "
+"manually with the '/etc/init.d/mysql start' command."
+msgstr ""
+"Percona Server デーモンはブート時に自動で、または手作業で「/etc/init.d/mysql "
+"start」コマンドを実行することで開始できます。"
+
+#. Type: password
+#. Description
+#: ../percona-xtradb-cluster-server-5.5.templates:6001
+msgid "New password for the Percona Server \"root\" user:"
+msgstr "Percona Server の「root」ユーザに対する新しいパスワード:"
+
+#. Type: password
+#. Description
+#: ../percona-xtradb-cluster-server-5.5.templates:6001
+msgid ""
+"While not mandatory, it is highly recommended that you set a password for "
+"the Percona Server administrative \"root\" user."
+msgstr ""
+"必須ではありませんが Percona Server の管理者ユーザに対してパスワードを設定す"
+"ることを強く推奨します。"
+
+#. Type: password
+#. Description
+#: ../percona-xtradb-cluster-server-5.5.templates:6001
+msgid "If that field is left blank, the password will not be changed."
+msgstr "空白にした場合パスワードは変更されません。"
+
+#. Type: password
+#. Description
+#: ../percona-xtradb-cluster-server-5.5.templates:7001
+msgid "Repeat password for the Percona Server \"root\" user:"
+msgstr ""
+"Percona Server の「root」ユーザのパスワードを繰り返し入力してください。"
+
+#. Type: error
+#. Description
+#: ../percona-xtradb-cluster-server-5.5.templates:8001
+msgid "Unable to set password for the Percona Server \"root\" user"
+msgstr "Percona Server の「root」ユーザのパスワードを設定できません"
+
+#. Type: error
+#. Description
+#: ../percona-xtradb-cluster-server-5.5.templates:8001
+msgid ""
+"An error occurred while setting the password for the Percona Server "
+"administrative user. This may have happened because the account already has "
+"a password, or because of a communication problem with the Percona Server "
+"daemon."
+msgstr ""
+"Percona Server の管理者ユーザに対してパスワードを設定しようとした際、エラーが"
+"発生しました。これは既に管理者ユーザにパスワードが設定されていたか、Percona "
+"Server サーバとの接続に問題があったためだと思われます。"
+
+#. Type: error
+#. Description
+#: ../percona-xtradb-cluster-server-5.5.templates:8001
+msgid "You should check the account's password after the package installation."
+msgstr ""
+"パッケージのインストール後、アカウントのパスワードを確認する必要があります。"
+
+#. Type: error
+#. Description
+#: ../percona-xtradb-cluster-server-5.5.templates:8001
+msgid ""
+"Please read the /usr/share/doc/mysql-server-5.5/README.Debian file for more "
+"information."
+msgstr ""
+"詳細は /usr/share/doc/mysql-server-5.5/README.Debian を参照してください。"
+
+#. Type: error
+#. Description
+#: ../percona-xtradb-cluster-server-5.5.templates:9001
+msgid "Password input error"
+msgstr "パスワード入力エラー"
+
+#. Type: error
+#. Description
+#: ../percona-xtradb-cluster-server-5.5.templates:9001
+msgid "The two passwords you entered were not the same. Please try again."
+msgstr "入力された二つのパスワードが一致しません。再入力してください。"
+
+#. Type: error
+#. Description
+#: ../percona-xtradb-cluster-server-5.5.templates:10001
+msgid "NDB Cluster seems to be in use"
+msgstr "NDB クラスタが利用されているようです"
+
+#. Type: error
+#. Description
+#: ../percona-xtradb-cluster-server-5.5.templates:10001
+msgid ""
+"Percona-Server-5.5 has orphaned NDB Cluster support. Please migrate to the "
+"new mysql-cluster package and remove all lines starting with \"ndb\" from "
+"all config files below /etc/mysql/."
+msgstr ""
+"Percona-Server-5.5 では NDB クラスタのサポートは廃止されています。新たな "
+"mysql-cluster パッケージに移行して、/etc/mysql 以下の設定ファイルすべてから"
+"「ndb」で始まる行を削除してください。"
