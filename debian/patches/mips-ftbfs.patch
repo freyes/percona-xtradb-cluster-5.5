@@ -1,0 +1,17 @@
+Description: Fix FTBFS on mips
+Author: Plamen Alexandrov <plamen@aomeda.com>
+Forwarded: no
+Bug-Debian: https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=754489
+
+diff -urN percona-xtradb-cluster-5.5-5.5.37-25.10+dfsg/sql/query_response_time.cc percona-xtradb-cluster-5.5-5.5.37-25.10+dfsg.minee/sql/query_response_time.cc
+--- percona-xtradb-cluster-5.5-5.5.37-25.10+dfsg/sql/query_response_time.cc	2014-05-08 00:58:25.000000000 +0000
++++ percona-xtradb-cluster-5.5-5.5.37-25.10+dfsg.minee/sql/query_response_time.cc	2014-07-11 16:55:52.939978748 +0000
+@@ -198,7 +198,7 @@
+   /* The lock for atomic operations on m_count and m_total.  Only actually
+   used on architectures that do not have atomic implementation of atomic
+   operations. */
+-  my_atomic_rwlock_t time_collector_lock;
++  mutable my_atomic_rwlock_t time_collector_lock;
+   uint32   m_count[OVERALL_POWER_COUNT + 1];
+   uint64   m_total[OVERALL_POWER_COUNT + 1];
+ };

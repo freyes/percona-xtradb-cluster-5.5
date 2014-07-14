@@ -5,3 +5,4 @@
 50_mysql-test__db_test.dpatch
 70_mysql_va_list.patch
 fix_standalone_tests.patch
+mips-ftbfs.patch
