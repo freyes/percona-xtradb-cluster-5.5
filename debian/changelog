@@ -20,7 +20,7 @@ percona-xtradb-cluster-5.5 (5.5.37-25.10+dfsg-2) UNRELEASED; urgency=medium
     non-functional with wsrep and Galera (Closes: #749792).
 
   [ Plamen Alexandrov ]
-  * d/p/mips-ftbfs.patch: Resolve FTBFS on mips architecture (Closes: 754489).
+  * d/p/mips-ftbfs.patch: Resolve FTBFS on mips architecture (Closes: #754489).
 
  -- James Page <james.page@ubuntu.com>  Wed, 21 May 2014 12:23:30 +0100
 
