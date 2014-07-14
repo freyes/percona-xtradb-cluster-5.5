@@ -16,6 +16,8 @@ percona-xtradb-cluster-5.5 (5.5.37-25.10+dfsg-2) UNRELEASED; urgency=medium
   * d/control: Update Maintainer to pkg-mysql-maint (Closes: #750073, #753748).
   * d/control: Use iproute2 instead of iproute transitional package
     (Closes: #753743).
+  * d/control: Disable percona-xtradb-cluster-testsuite* packages as they are
+    non-functional with wsrep and Galera (Closes: #749792). 
 
  -- James Page <james.page@ubuntu.com>  Wed, 21 May 2014 12:23:30 +0100
 
