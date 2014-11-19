@@ -1,4 +1,4 @@
-/* Copyright (c) 2002, 2013, Oracle and/or its affiliates. All rights reserved.
+/* Copyright (c) 2002, 2014, Oracle and/or its affiliates. All rights reserved.
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -2526,9 +2526,10 @@ static Sys_var_ulonglong Sys_tmp_table_size(
 
 static Sys_var_mybool Sys_timed_mutexes(
        "timed_mutexes",
-       "Specify whether to time mutexes (only InnoDB mutexes are currently "
-       "supported)",
-       GLOBAL_VAR(timed_mutexes), CMD_LINE(OPT_ARG), DEFAULT(0));
+       "Specify whether to time mutexes. Deprecated, has no effect.",
+       GLOBAL_VAR(timed_mutexes), CMD_LINE(OPT_ARG), DEFAULT(0),
+       NO_MUTEX_GUARD, NOT_IN_BINLOG, ON_CHECK(NULL), ON_UPDATE(NULL),
+       DEPRECATED(""));
 
 static char *server_version_ptr;
 static Sys_var_charptr Sys_version(
@@ -3923,9 +3924,21 @@ static Sys_var_mybool Sys_wsrep_certify_nonPK(
        CMD_LINE(OPT_ARG), DEFAULT(TRUE));
 
 static Sys_var_mybool Sys_wsrep_causal_reads(
-       "wsrep_causal_reads", "Enable \"strictly synchronous\" semantics for read operations",
+       "wsrep_causal_reads", "(DEPRECATED) setting this variable is equivalent to setting wsrep_sync_wait READ flag",
        SESSION_VAR(wsrep_causal_reads), 
-       CMD_LINE(OPT_ARG), DEFAULT(FALSE));
+       CMD_LINE(OPT_ARG), DEFAULT(FALSE),
+       NO_MUTEX_GUARD, NOT_IN_BINLOG, ON_CHECK(0),
+       ON_UPDATE(wsrep_causal_reads_update));
+
+static Sys_var_uint Sys_wsrep_sync_wait(
+       "wsrep_sync_wait", "Ensure \"synchronous\" read view before executing an operation of the type specified by bitmask: 1 - READ(includes SELECT, SHOW and BEGIN/START TRANSACTION); 2 - UPDATE and DELETE; 4 - INSERT and REPLACE",
+       SESSION_VAR(wsrep_sync_wait),
+       CMD_LINE(OPT_ARG),
+       VALID_RANGE(WSREP_SYNC_WAIT_NONE, WSREP_SYNC_WAIT_MAX),
+       DEFAULT(WSREP_SYNC_WAIT_NONE),
+       BLOCK_SIZE(1),
+       NO_MUTEX_GUARD, NOT_IN_BINLOG, ON_CHECK(0),
+       ON_UPDATE(wsrep_sync_wait_update));
 
 static const char *wsrep_OSU_method_names[]= { "TOI", "RSU", NullS };
 static Sys_var_enum Sys_wsrep_OSU_method(
@@ -3983,6 +3996,18 @@ static Sys_var_mybool Sys_wsrep_load_data_splitting(
        "transaction after every 10K rows inserted",
        GLOBAL_VAR(wsrep_load_data_splitting), 
        CMD_LINE(OPT_ARG), DEFAULT(TRUE));
+
+static Sys_var_mybool Sys_wsrep_slave_FK_checks(
+       "wsrep_slave_FK_checks", "Should slave thread do "
+       "foreign key constraint checks",
+       GLOBAL_VAR(wsrep_slave_FK_checks), 
+       CMD_LINE(OPT_ARG), DEFAULT(TRUE));
+
+static Sys_var_mybool Sys_wsrep_slave_UK_checks(
+       "wsrep_slave_UK_checks", "Should slave thread do "
+       "secondary index uniqueness chesks",
+       GLOBAL_VAR(wsrep_slave_UK_checks), 
+       CMD_LINE(OPT_ARG), DEFAULT(FALSE));
 
 static Sys_var_mybool Sys_wsrep_restart_slave(
        "wsrep_restart_slave", "Should MySQL slave be restarted automatically, when node joins back to cluster",

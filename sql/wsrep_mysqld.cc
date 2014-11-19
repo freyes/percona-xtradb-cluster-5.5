@@ -51,7 +51,7 @@ ulong   wsrep_max_ws_size              = 1073741824UL;//max ws (RBR buffer) size
 ulong   wsrep_max_ws_rows              = 65536; // max number of rows in ws
 int     wsrep_to_isolation             = 0; // # of active TO isolation threads
 my_bool wsrep_certify_nonPK            = 1; // certify, even when no primary key
-long    wsrep_max_protocol_version     = 2; // maximum protocol version to use
+long    wsrep_max_protocol_version     = 3; // maximum protocol version to use
 ulong   wsrep_forced_binlog_format     = BINLOG_FORMAT_UNSPEC;
 my_bool wsrep_recovery                 = 0; // recovery
 my_bool wsrep_replicate_myisam         = 0; // enable myisam replication
@@ -64,6 +64,8 @@ my_bool wsrep_restart_slave            = 0; // should mysql slave thread be
                                             // restarted, if node joins back
 my_bool wsrep_restart_slave_activated  = 0; // node has dropped, and slave
                                             // restart will be needed
+my_bool wsrep_slave_UK_checks          = 0; // slave thread does UK checks
+my_bool wsrep_slave_FK_checks          = 0; // slave thread does FK checks
 /*
  * End configuration options
  */
@@ -104,7 +106,7 @@ const char* wsrep_provider_vendor    = provider_vendor;
 wsrep_uuid_t     local_uuid   = WSREP_UUID_UNDEFINED;
 wsrep_seqno_t    local_seqno  = WSREP_SEQNO_UNDEFINED;
 wsp::node_status local_status;
-long             wsrep_protocol_version = 2;
+long             wsrep_protocol_version = 3;
 
 // Boolean denoting if server is in initial startup phase. This is needed
 // to make sure that main thread waiting in wsrep_sst_wait() is signaled
@@ -125,7 +127,7 @@ static void wsrep_log_cb(wsrep_log_level_t level, const char *msg) {
     sql_print_error("WSREP: %s", msg);
     break;
   case WSREP_LOG_DEBUG:
-    sql_print_information ("[Debug] WSREP: %s", msg);
+    if (wsrep_debug) sql_print_information ("[Debug] WSREP: %s", msg);
   default:
     break;
   }
@@ -251,6 +253,7 @@ wsrep_view_handler_cb (void*                    app_ctx,
   case 0:
   case 1:
   case 2:
+  case 3:
       // version change
       if (view->proto_ver != wsrep_protocol_version)
       {
@@ -279,9 +282,16 @@ wsrep_view_handler_cb (void*                    app_ctx,
     wsrep_ready_set(FALSE);
 
     /* Close client connections to ensure that they don't interfere
-     * with SST */
-    WSREP_DEBUG("[debug]: closing client connections for PRIM");
-    wsrep_close_client_connections(TRUE);
+     * with SST. Necessary only if storage engines are initialized
+     * before SST.
+     * TODO: Just killing all ongoing transactions should be enough
+     * since wsrep_ready is OFF and no new transactions can start.
+     */
+    if (!wsrep_before_SE())
+    {
+        WSREP_DEBUG("[debug]: closing client connections for PRIM");
+        wsrep_close_client_connections(TRUE);
+    }
 
     ssize_t const req_len= wsrep_sst_prepare (sst_req);
 
@@ -355,7 +365,7 @@ wsrep_view_handler_cb (void*                    app_ctx,
   }
 
 out:
-  wsrep_startup= FALSE;
+  if (view->status == WSREP_VIEW_PRIMARY) wsrep_startup= FALSE;
   local_status.set(new_status, view);
 
   return WSREP_CB_SUCCESS;
@@ -507,7 +517,20 @@ int wsrep_init()
     // enable normal operation in case no provider is specified
     wsrep_ready_set(TRUE);
     global_system_variables.wsrep_on = 0;
-    return 0;
+    wsrep_init_args args;
+    args.logger_cb = wsrep_log_cb;
+    args.options = (wsrep_provider_options) ?
+            wsrep_provider_options : "";
+    rcode = wsrep->init(wsrep, &args);
+    if (rcode)
+    {
+      DBUG_PRINT("wsrep",("wsrep::init() failed: %d", rcode));
+      WSREP_ERROR("wsrep::init() failed: %d, must shutdown", rcode);
+      wsrep->free(wsrep);
+      free(wsrep);
+      wsrep = NULL;
+    }
+    return rcode;
   }
   else
   {
@@ -749,10 +772,10 @@ void wsrep_filter_new_cluster (int* argc, char* argv[])
   {
     /* make a copy of the argument to convert possible underscores to hyphens.
      * the copy need not to be longer than WSREP_NEW_CLUSTER option */
-    char arg[sizeof(WSREP_NEW_CLUSTER) + 2]= { 0, };
+    char arg[sizeof(WSREP_NEW_CLUSTER) + 1]= { 0, };
     strncpy(arg, argv[i], sizeof(arg) - 1);
-    char* underscore;
-    while (NULL != (underscore= strchr(arg, '_'))) *underscore= '-';
+    char* underscore(arg);
+    while (NULL != (underscore= strchr(underscore, '_'))) *underscore= '-';
 
     if (!strcmp(arg, WSREP_NEW_CLUSTER))
     {
@@ -835,13 +858,15 @@ bool wsrep_start_replication()
   return true;
 }
 
-bool
-wsrep_causal_wait (THD* thd)
+bool wsrep_sync_wait (THD* thd, uint mask)
 {
-  if (thd->variables.wsrep_causal_reads && thd->variables.wsrep_on &&
+  if ((thd->variables.wsrep_sync_wait & mask) &&
+      thd->variables.wsrep_on &&
       !thd->in_active_multi_stmt_transaction() &&
       thd->wsrep_conflict_state != REPLAYING)
   {
+    WSREP_DEBUG("wsrep_sync_wait: thd->variables.wsrep_sync_wait = %u, mask = %u",
+                thd->variables.wsrep_sync_wait, mask);
     // This allows autocommit SELECTs and a first SELECT after SET AUTOCOMMIT=0
     // TODO: modify to check if thd has locked any rows.
     wsrep_gtid_t  gtid;
@@ -860,12 +885,12 @@ wsrep_causal_wait (THD* thd)
       switch (ret)
       {
       case WSREP_NOT_IMPLEMENTED:
-        msg= "consistent reads by wsrep backend. "
+        msg= "synchronous reads by wsrep backend. "
              "Please unset wsrep_causal_reads variable.";
         err= ER_NOT_SUPPORTED_YET;
         break;
       default:
-        msg= "Causal wait failed.";
+        msg= "Synchronous wait failed.";
         err= ER_LOCK_WAIT_TIMEOUT; // NOTE: the above msg won't be displayed
                                    //       with ER_LOCK_WAIT_TIMEOUT
       }
@@ -925,6 +950,7 @@ static bool wsrep_prepare_key_for_isolation(const char* db,
         break;
     case 1:
     case 2:
+    case 3:
     {
         *key_len= 0;
         if (db)
@@ -1056,6 +1082,7 @@ bool wsrep_prepare_key_for_innodb(const uchar* cache_key,
     }
     case 1:
     case 2:
+    case 3:
     {
         key[0].ptr = cache_key;
         key[0].len = strlen( (char*)cache_key );
@@ -1211,6 +1238,9 @@ static int wsrep_TOI_begin(THD *thd, char *db_, char *table_,
   case SQLCOM_CREATE_EVENT:
     buf_err= wsrep_create_event_query(thd, &buf, &buf_len);
     break;
+  case SQLCOM_ALTER_EVENT:
+    buf_err= wsrep_alter_event_query(thd, &buf, &buf_len);
+    break;
   default:
     buf_err= wsrep_to_buf_helper(thd, thd->query(), thd->query_length(), &buf,
                                  &buf_len);
@@ -1255,6 +1285,14 @@ static void wsrep_TOI_end(THD *thd) {
 
   WSREP_DEBUG("TO END: %lld, %d : %s", (long long)wsrep_thd_trx_seqno(thd),
               thd->wsrep_exec_mode, (thd->query()) ? thd->query() : "void");
+  
+  XID xid;
+  wsrep_xid_init(&xid, &thd->wsrep_trx_meta.gtid.uuid,
+                 thd->wsrep_trx_meta.gtid.seqno);
+  wsrep_set_SE_checkpoint(&xid);
+  WSREP_DEBUG("TO END: %lld, update seqno",
+              (long long)wsrep_thd_trx_seqno(thd));
+  
   if (WSREP_OK == (ret = wsrep->to_execute_end(wsrep, thd->thread_id))) {
     WSREP_DEBUG("TO END: %lld", (long long)wsrep_thd_trx_seqno(thd));
   }

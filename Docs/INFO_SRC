@@ -1,8 +1,8 @@
-revision-id: raghavendra.prabhu@percona.com-20140508004809-sg2r5bt63910vj43
-date: 2014-05-08 06:18:09 +0530
-build-date: 2014-05-07 20:58:41 -0400
-revno: 756
+revision-id: raghavendra.prabhu@percona.com-20140905081541-qfd9cm15vld2bauh
+date: 2014-09-05 13:45:41 +0530
+build-date: 2014-09-05 04:17:07 -0400
+revno: 824
 branch-nick: percona-xtradb-cluster-5.5-source-tarball
 
 
-MySQL source 5.5.37-35.0
+MySQL source 5.5.39-36.0

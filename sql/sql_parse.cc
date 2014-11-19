@@ -1,4 +1,4 @@
-/* Copyright (c) 2000, 2013, Oracle and/or its affiliates. All rights reserved.
+/* Copyright (c) 2000, 2014, Oracle and/or its affiliates. All rights reserved.
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -978,6 +978,9 @@ static void wsrep_copy_query(THD *thd)
 {
   thd->wsrep_retry_command   = thd->command;
   thd->wsrep_retry_query_len = thd->query_length();
+  if (thd->wsrep_retry_query) {
+      my_free(thd->wsrep_retry_query);
+  }
   thd->wsrep_retry_query     = (char *)my_malloc(
                                  thd->wsrep_retry_query_len + 1, MYF(0));
   strncpy(thd->wsrep_retry_query, thd->query(), thd->wsrep_retry_query_len);
@@ -1061,10 +1064,6 @@ bool dispatch_command(enum enum_server_command command, THD *thd,
                       (char *) thd->security_ctx->host_or_ip);
   
   thd->command=command;
-  /* To increment the corrent command counter for user stats, 'command' must
-     be saved because it is set to COM_SLEEP at the end of this function.
-  */
-  thd->old_command= command;
   /*
     Commands which always take a long time are logged into
     the slow log only if opt_log_slow_admin_statements is set.
@@ -2556,7 +2555,7 @@ mysql_execute_command(THD *thd)
   case SQLCOM_SHOW_STATUS_PROC:
   case SQLCOM_SHOW_STATUS_FUNC:
 #ifdef WITH_WSREP
-    if (WSREP_CLIENT(thd) && wsrep_causal_wait(thd)) goto error;
+    if (WSREP_CLIENT(thd) && wsrep_sync_wait(thd)) goto error;
 #endif /* WITH_WSREP */
     if ((res= check_table_access(thd, SELECT_ACL, all_tables, FALSE,
                                   UINT_MAX, FALSE)))
@@ -2568,7 +2567,7 @@ mysql_execute_command(THD *thd)
     system_status_var old_status_var= thd->status_var;
     thd->initial_status_var= &old_status_var;
 #ifdef WITH_WSREP
-    if (WSREP_CLIENT(thd) && wsrep_causal_wait(thd)) goto error;
+    if (WSREP_CLIENT(thd) && wsrep_sync_wait(thd)) goto error;
 #endif /* WITH_WSREP */
     if (!(res= check_table_access(thd, SELECT_ACL, all_tables, FALSE,
                                   UINT_MAX, FALSE)))
@@ -2608,7 +2607,7 @@ mysql_execute_command(THD *thd)
 #endif /* WITH_WSREP */
   case SQLCOM_SELECT:
 #ifdef WITH_WSREP
-    if (WSREP_CLIENT(thd) && wsrep_causal_wait(thd)) goto error;
+    if (WSREP_CLIENT(thd) && wsrep_sync_wait(thd)) goto error;
   case SQLCOM_SHOW_VARIABLES:
   case SQLCOM_SHOW_CHARSETS:
   case SQLCOM_SHOW_COLLATIONS:
@@ -3249,7 +3248,7 @@ end_with_restore_list:
 #else
     {
 #ifdef WITH_WSREP
-      if (WSREP_CLIENT(thd) && wsrep_causal_wait(thd)) goto error;
+      if (WSREP_CLIENT(thd) && wsrep_sync_wait(thd)) goto error;
 #endif /* WITH_WSREP */
 
      /*
@@ -3308,7 +3307,7 @@ end_with_restore_list:
   {
     DBUG_ASSERT(first_table == all_tables && first_table != 0);
 #ifdef WITH_WSREP
-    if (WSREP_CLIENT(thd) && wsrep_causal_wait(thd)) goto error;
+    if (WSREP_CLIENT(thd) && wsrep_sync_wait(thd)) goto error;
 #endif /* WITH_WSREP */
 
     if (check_table_access(thd, SELECT_ACL, all_tables,
@@ -3319,6 +3318,10 @@ end_with_restore_list:
     break;
   }
   case SQLCOM_UPDATE:
+#ifdef WITH_WSREP
+      if (WSREP_CLIENT(thd) &&
+          wsrep_sync_wait(thd, WSREP_SYNC_WAIT_BEFORE_UPDATE_DELETE)) goto error;
+#endif /* WITH_WSREP */      
   {
     ha_rows found= 0, updated= 0;
     DBUG_ASSERT(first_table == all_tables && first_table != 0);
@@ -3358,6 +3361,10 @@ end_with_restore_list:
     /* if we switched from normal update, rights are checked */
     if (up_result != 2)
     {
+#ifdef WITH_WSREP
+      if (WSREP_CLIENT(thd) &&
+          wsrep_sync_wait(thd, WSREP_SYNC_WAIT_BEFORE_UPDATE_DELETE)) goto error;
+#endif /* WITH_WSREP */
       if ((res= multi_update_precheck(thd, all_tables)))
         break;
     }
@@ -3427,6 +3434,10 @@ end_with_restore_list:
     break;
   }
   case SQLCOM_REPLACE:
+#ifdef WITH_WSREP
+      if (WSREP_CLIENT(thd) &&
+          wsrep_sync_wait(thd, WSREP_SYNC_WAIT_BEFORE_INSERT_REPLACE)) goto error;
+#endif /* WITH_WSREP */
 #ifndef DBUG_OFF
     if (mysql_bin_log.is_open())
     {
@@ -3462,6 +3473,10 @@ end_with_restore_list:
     }
 #endif
   case SQLCOM_INSERT:
+#ifdef WITH_WSREP
+      if (WSREP_CLIENT(thd) &&
+          wsrep_sync_wait(thd, WSREP_SYNC_WAIT_BEFORE_INSERT_REPLACE)) goto error;
+#endif /* WITH_WSREP */      
   {
     DBUG_ASSERT(first_table == all_tables && first_table != 0);
     if ((res= insert_precheck(thd, all_tables)))
@@ -3496,14 +3511,17 @@ end_with_restore_list:
   }
   case SQLCOM_REPLACE_SELECT:
   case SQLCOM_INSERT_SELECT:
+#ifdef WITH_WSREP
+      if (WSREP_CLIENT(thd) &&
+          wsrep_sync_wait(thd, WSREP_SYNC_WAIT_BEFORE_INSERT_REPLACE)) goto error;
+#endif /* WITH_WSREP */      
   {
     select_result *sel_result;
     DBUG_ASSERT(first_table == all_tables && first_table != 0);
     if ((res= insert_precheck(thd, all_tables)))
       break;
 #ifdef WITH_WSREP
-    if (lex->sql_command == SQLCOM_INSERT_SELECT &&
-	thd->wsrep_consistency_check == CONSISTENCY_CHECK_DECLARED)
+    if (thd->wsrep_consistency_check == CONSISTENCY_CHECK_DECLARED)
     {
       thd->wsrep_consistency_check = CONSISTENCY_CHECK_RUNNING;
       WSREP_TO_ISOLATION_BEGIN(first_table->db, first_table->table_name, NULL);
@@ -3589,6 +3607,10 @@ end_with_restore_list:
     break;
   }
   case SQLCOM_DELETE:
+#ifdef WITH_WSREP
+    if (WSREP_CLIENT(thd) && 
+        wsrep_sync_wait(thd, WSREP_SYNC_WAIT_BEFORE_UPDATE_DELETE)) goto error;
+#endif /* WITH_WSREP */
   {
     DBUG_ASSERT(first_table == all_tables && first_table != 0);
     if ((res= delete_precheck(thd, all_tables)))
@@ -3604,6 +3626,10 @@ end_with_restore_list:
     break;
   }
   case SQLCOM_DELETE_MULTI:
+#ifdef WITH_WSREP
+    if (WSREP_CLIENT(thd) && 
+        wsrep_sync_wait(thd, WSREP_SYNC_WAIT_BEFORE_UPDATE_DELETE)) goto error;
+#endif /* WITH_WSREP */
   {
     DBUG_ASSERT(first_table == all_tables && first_table != 0);
     TABLE_LIST *aux_tables= thd->lex->auxiliary_table_list.first;
@@ -8226,7 +8252,7 @@ bool check_host_name(LEX_STRING *str)
 }
 
 
-extern int MYSQLparse(void *thd); // from sql_yacc.cc
+extern int MYSQLparse(class THD *thd); // from sql_yacc.cc
 
 
 /**

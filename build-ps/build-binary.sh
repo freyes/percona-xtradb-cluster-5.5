@@ -20,12 +20,15 @@ CMAKE_BUILD_TYPE='RelWithDebInfo'
 DEBUG_COMMENT=''
 WITH_JEMALLOC=''
 WITH_SSL='/usr'
+WITH_SSL_TYPE='system'
 OPENSSL_INCLUDE=''
 OPENSSL_LIBRARY=''
 CRYPTO_LIBRARY=''
 GALERA_SSL=''
 TAG=''
-
+#
+COMMON_FLAGS=''
+#
 # Some programs that may be overriden
 TAR=${TAR:-tar}
 
@@ -33,7 +36,7 @@ TAR=${TAR:-tar}
 if ! getopt --test
 then
     go_out="$(getopt --options=iqdvjt: \
-        --longoptions=i686,quiet,debug,valgrind,with-jemalloc:,with-ssl:,tag: \
+        --longoptions=i686,quiet,debug,valgrind,with-jemalloc:,with-yassl,with-ssl:,tag: \
         --name="$(basename "$0")" -- "$@")"
     test $? -eq 0 || exit 1
     eval set -- $go_out
@@ -66,6 +69,10 @@ do
         shift
         WITH_JEMALLOC="$1"
         shift
+        ;;
+    --with-yassl )
+        shift
+        WITH_SSL_TYPE="bundled"
         ;;
     --with-ssl )
         shift
@@ -145,7 +152,11 @@ if test -e "/proc/cpuinfo"
 then
     PROCESSORS="$(grep -c ^processor /proc/cpuinfo)"
 else
-    PROCESSORS=2
+    PROCESSORS=4
+fi
+
+if [[ -z ${STAG:-} ]];then 
+    STAG=""
 fi
 
 
@@ -166,7 +177,15 @@ RELEASE_TAG=''
 PRODUCT="Percona-XtraDB-Cluster-$MYSQL_VERSION-$PERCONA_XTRADB_CLUSTER_VERSION"
 
 # Build information
-REVISION="$(cd "$SOURCEDIR"; grep '^revno: ' Docs/INFO_SRC |sed -e 's/revno: //')"
+if test -e "$SOURCEDIR/Docs/INFO_SRC"
+then
+    REVISION="$(cd "$SOURCEDIR"; grep '^revno: ' Docs/INFO_SRC |sed -e 's/revno: //')"
+elif test -e "$SOURCEDIR/.bzr/branch/last-revision"
+then
+    REVISION="$(cd "$SOURCEDIR"; cat .bzr/branch/last-revision | awk -F ' ' '{print $1}')"
+else
+    REVISION=""
+fi
 WSREP_VERSION="$(grep WSREP_INTERFACE_VERSION wsrep/wsrep_api.h | cut -d '"' -f2).$(grep 'SET(WSREP_PATCH_VERSION'  "cmake/wsrep.cmake" | cut -d '"' -f2)"
 GALERA_REVISION="$(cd "$SOURCEDIR/percona-xtradb-cluster-galera"; test -r GALERA-REVISION && cat GALERA-REVISION || bzr revno)"
 PRODUCT_FULL="$PRODUCT-$RELEASE_TAG$WSREP_VERSION.$REVISION${BUILD_COMMENT:-}$TAG.$(uname -s).$TARGET"
@@ -229,7 +248,7 @@ fi
 
     make -f Makefile-pxc all
 
-    if grep builtin <<< "$STAG";then 
+    if grep -q builtin <<< "$STAG" || [[ $WITH_SSL_TYPE == 'bundled' ]];then 
         # builtin
         SSL_OPT='-DWITH_SSL=bundled -DWITH_ZLIB=bundled'
     else 
@@ -253,9 +272,33 @@ fi
     make $MAKE_JFLAG $QUIET
     make DESTDIR="$WORKDIR" install
 
+    if [[ $CMAKE_BUILD_TYPE != 'Debug' ]];then
+        make clean
+        cmake . ${CMAKE_OPTS:-} -DBUILD_CONFIG=mysql_release \
+            -DCMAKE_BUILD_TYPE=Debug \
+            $DEBUG_EXTNAME \
+            -DWITH_EMBEDDED_SERVER=OFF \
+            -DFEATURE_SET=community \
+            -DENABLE_DTRACE=OFF \
+            $SSL_OPT \
+            -DCMAKE_INSTALL_PREFIX="/usr/local/$PRODUCT_FULL" \
+            -DMYSQL_DATADIR="/usr/local/$PRODUCT_FULL/data" \
+            -DMYSQL_SERVER_SUFFIX="-$RELEASE_TAG$WSREP_VERSION" \
+            -DWITH_INNODB_DISALLOW_WRITES=ON \
+            -DWITH_WSREP=ON \
+            -DCOMPILATION_COMMENT="$COMMENT" \
+            -DWITH_PAM=ON \
+            -DWITH_INNODB_MEMCACHED=ON \
+            $OPENSSL_INCLUDE $OPENSSL_LIBRARY $CRYPTO_LIBRARY
+        make $MAKE_JFLAG $QUIET
+
+        echo "Copying mysqld-debug"
+        cp -v sql/mysqld-debug $WORKDIR/usr/local/$PRODUCT_FULL/bin/
+    fi
+
     # Build HandlerSocket
     (
-        cd "storage/HandlerSocket-Plugin-for-MySQL"
+        cd "plugin/HandlerSocket-Plugin-for-MySQL"
         ./autogen.sh
         CXX=${HS_CXX:-g++} ./configure --with-mysql-source="$SOURCEDIR" \
             --with-mysql-bindir="$SOURCEDIR/scripts" \
@@ -267,16 +310,6 @@ fi
 
     )
 
-    # Build UDF
-    (
-        cd "UDF"
-	autoreconf --install
-        CXX=${UDF_CXX:-g++} ./configure --includedir="$SOURCEDIR/include" \
-            --libdir="/usr/local/$PRODUCT_FULL/mysql/plugin"
-        make $MAKE_JFLAG
-        make DESTDIR="$WORKDIR" install
-
-    )
 
     (
        echo "Packaging the test files"

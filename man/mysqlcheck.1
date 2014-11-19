@@ -2,12 +2,12 @@
 .\"     Title: \fBmysqlcheck\fR
 .\"    Author: [FIXME: author] [see http://docbook.sf.net/el/author]
 .\" Generator: DocBook XSL Stylesheets v1.78.1 <http://docbook.sf.net/>
-.\"      Date: 03/14/2014
+.\"      Date: 07/18/2014
 .\"    Manual: MySQL Database System
 .\"    Source: MySQL 5.5
 .\"  Language: English
 .\"
-.TH "\FBMYSQLCHECK\FR" "1" "03/14/2014" "MySQL 5\&.5" "MySQL Database System"
+.TH "\FBMYSQLCHECK\FR" "1" "07/18/2014" "MySQL 5\&.5" "MySQL Database System"
 .\" -----------------------------------------------------------------
 .\" * Define some portability stuff
 .\" -----------------------------------------------------------------
@@ -204,10 +204,8 @@ supports the following options, which can be specified on the command line or in
 [mysqlcheck]
 and
 [client]
-groups of an option file\&.
-\fBmysqlcheck\fR
-also supports the options for processing option files described at
-Section\ \&4.2.3.4, \(lqCommand-Line Options that Affect Option-File Handling\(rq\&.
+groups of an option file\&. For information about option files, see
+Section\ \&4.2.6, \(lqUsing Option Files\(rq\&.
 .sp
 .RS 4
 .ie n \{\
@@ -240,7 +238,13 @@ Display a help message and exit\&.
 .sp
 Check all tables in all databases\&. This is the same as using the
 \fB\-\-databases\fR
-option and naming all the databases on the command line\&.
+option and naming all the databases on the command line, except that the
+INFORMATION_SCHEMA
+and
+performace_schema
+databases are not dumped\&. They can be dumped by explicitly naming them with the
+\fB\-\-databases\fR
+option\&.
 .RE
 .sp
 .RS 4
@@ -412,6 +416,15 @@ Compress all information sent between the client and the server if both support 
 Process all tables in the named databases\&. Normally,
 \fBmysqlcheck\fR
 treats the first name argument on the command line as a database name and following names as table names\&. With this option, it treats all name arguments as database names\&.
+.sp
+This option may be used to dump the
+INFORMATION_SCHEMA
+and
+performace_schema
+databases, which normally are not dumped even with
+\fB\-\-all\-databases\fR\&. option\&. (Also use the
+\fB\-\-skip\-lock\-tables\fR
+option\&.)
 .RE
 .sp
 .RS 4
@@ -480,6 +493,70 @@ Use
 \fIcharset_name\fR
 as the default character set\&. See
 Section\ \&10.5, \(lqCharacter Set Configuration\(rq\&.
+.RE
+.sp
+.RS 4
+.ie n \{\
+\h'-04'\(bu\h'+03'\c
+.\}
+.el \{\
+.sp -1
+.IP \(bu 2.3
+.\}
+.\" mysqlcheck: defaults-extra-file option
+.\" defaults-extra-file option: mysqlcheck
+\fB\-\-defaults\-extra\-file=\fR\fB\fIfile_name\fR\fR
+.sp
+Read this option file after the global option file but (on Unix) before the user option file\&. If the file does not exist or is otherwise inaccessible, an error occurs\&. Before MySQL 5\&.5\&.8,
+\fIfile_name\fR
+must be the full path name to the file\&. As of MySQL 5\&.5\&.8, the name is interpreted relative to the current directory if given as a relative path name\&.
+.RE
+.sp
+.RS 4
+.ie n \{\
+\h'-04'\(bu\h'+03'\c
+.\}
+.el \{\
+.sp -1
+.IP \(bu 2.3
+.\}
+.\" mysqlcheck: defaults-file option
+.\" defaults-file option: mysqlcheck
+\fB\-\-defaults\-file=\fR\fB\fIfile_name\fR\fR
+.sp
+Use only the given option file\&. If the file does not exist or is otherwise inaccessible, an error occurs\&. Before MySQL 5\&.5\&.8,
+\fIfile_name\fR
+must be the full path name to the file\&. As of MySQL 5\&.5\&.8, the name is interpreted relative to the current directory if given as a relative path name\&.
+.RE
+.sp
+.RS 4
+.ie n \{\
+\h'-04'\(bu\h'+03'\c
+.\}
+.el \{\
+.sp -1
+.IP \(bu 2.3
+.\}
+.\" mysqlcheck: defaults-group-suffix option
+.\" defaults-group-suffix option: mysqlcheck
+\fB\-\-defaults\-group\-suffix=\fR\fB\fIstr\fR\fR
+.sp
+Read not only the usual option groups, but also groups with the usual names and a suffix of
+\fIstr\fR\&. For example,
+\fBmysqlcheck\fR
+normally reads the
+[client]
+and
+[mysqlcheck]
+groups\&. If the
+\fB\-\-defaults\-group\-suffix=_other\fR
+option is given,
+\fBmysqlcheck\fR
+also reads the
+[client_other]
+and
+[mysqlcheck_other]
+groups\&.
 .RE
 .sp
 .RS 4
@@ -622,6 +699,23 @@ operation\&. This finds only 99\&.99% of all errors, which should be good enough
 .sp -1
 .IP \(bu 2.3
 .\}
+.\" mysqlcheck: no-defaults option
+.\" no-defaults option: mysqlcheck
+\fB\-\-no\-defaults\fR
+.sp
+Do not read any option files\&. If program startup fails due to reading unknown options from an option file,
+\fB\-\-no\-defaults\fR
+can be used to prevent them from being read\&.
+.RE
+.sp
+.RS 4
+.ie n \{\
+\h'-04'\(bu\h'+03'\c
+.\}
+.el \{\
+.sp -1
+.IP \(bu 2.3
+.\}
 .\" mysqlcheck: optimize option
 .\" optimize option: mysqlcheck
 \fB\-\-optimize\fR,
@@ -711,6 +805,21 @@ This option was added in MySQL 5\&.5\&.10\&.
 \fB\-P \fR\fB\fIport_num\fR\fR
 .sp
 The TCP/IP port number to use for the connection\&.
+.RE
+.sp
+.RS 4
+.ie n \{\
+\h'-04'\(bu\h'+03'\c
+.\}
+.el \{\
+.sp -1
+.IP \(bu 2.3
+.\}
+.\" mysqlcheck: print-defaults option
+.\" print-defaults option: mysqlcheck
+\fB\-\-print\-defaults\fR
+.sp
+Print the program name and all options that it gets from option files\&.
 .RE
 .sp
 .RS 4
