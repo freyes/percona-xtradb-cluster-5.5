@@ -50,6 +50,32 @@ Prefix: %{_sysconfdir}
 %endif
 
 #
+%bcond_with systemd
+#
+%if %{with systemd}
+  %define systemd 1
+%else
+  %if 0%{?rhel} > 6
+    %define systemd 1
+  %else
+    %define systemd 0
+  %endif
+%endif
+
+#
+%bcond_with systemd
+#
+%if %{with systemd}
+  %define systemd 1
+%else
+  %if 0%{?rhel} > 6
+    %define systemd 1
+  %else
+    %define systemd 0
+  %endif
+%endif
+
+#
 # Macros we use which are not available in all supported versions of RPM
 #
 # - defined/undefined are missing on RHEL4
@@ -145,13 +171,13 @@ Prefix: %{_sysconfdir}
     %if "%oelver" == "4"
       %define distro_description        Oracle Enterprise Linux 4
       %define distro_releasetag         oel4
-      %define distro_buildreq           gcc-c++ gperf ncurses-devel perl readline-devel time zlib-devel libaio-devel bison cmake redhat-lsb
+      %define distro_buildreq           gcc-c++ gperf ncurses-devel perl readline-devel time zlib-devel libaio-devel bison cmake
       %define distro_requires           chkconfig coreutils grep procps shadow-utils
     %else
       %if "%oelver" == "5"
         %define distro_description      Oracle Enterprise Linux 5
         %define distro_releasetag       oel5
-        %define distro_buildreq         gcc-c++ gperf ncurses-devel perl readline-devel time zlib-devel libaio-devel bison cmake redhat-lsb
+        %define distro_buildreq         gcc-c++ gperf ncurses-devel perl readline-devel time zlib-devel libaio-devel bison cmake 
         %define distro_requires         chkconfig coreutils grep procps shadow-utils
       %else
         %{error:Oracle Enterprise Linux %{oelver} is unsupported}
@@ -163,13 +189,13 @@ Prefix: %{_sysconfdir}
       %if "%rhelver" == "4"
         %define distro_description      Red Hat Enterprise Linux 4
         %define distro_releasetag       rhel4
-        %define distro_buildreq         gcc-c++ gperf ncurses-devel perl readline-devel time zlib-devel libaio-devel bison cmake redhat-lsb
+        %define distro_buildreq         gcc-c++ gperf ncurses-devel perl readline-devel time zlib-devel libaio-devel bison cmake 
         %define distro_requires         chkconfig coreutils grep procps shadow-utils
       %else
         %if "%rhelver" == "5"
           %define distro_description    Red Hat Enterprise Linux 5
           %define distro_releasetag     rhel5
-          %define distro_buildreq       gcc-c++ gperf ncurses-devel perl readline-devel time zlib-devel libaio-devel bison cmake redhat-lsb
+          %define distro_buildreq       gcc-c++ gperf ncurses-devel perl readline-devel time zlib-devel libaio-devel bison cmake 
           %define distro_requires       chkconfig coreutils grep procps shadow-utils
         %else
           %{error:Red Hat Enterprise Linux %{rhelver} is unsupported}
@@ -181,13 +207,13 @@ Prefix: %{_sysconfdir}
         %if "%susever" == "10"
           %define distro_description    SUSE Linux Enterprise Server 10
           %define distro_releasetag     sles10
-          %define distro_buildreq       gcc-c++ gdbm-devel gperf ncurses-devel openldap2-client readline-devel zlib-devel libaio-devel bison cmake redhat-lsb
+          %define distro_buildreq       gcc-c++ gdbm-devel gperf ncurses-devel openldap2-client readline-devel zlib-devel libaio-devel bison cmake 
           %define distro_requires       aaa_base coreutils grep procps pwdutils
         %else
           %if "%susever" == "11"
             %define distro_description  SUSE Linux Enterprise Server 11
             %define distro_releasetag   sles11
-            %define distro_buildreq     gcc-c++ gdbm-devel gperf ncurses-devel openldap2-client procps pwdutils readline-devel zlib-devel libaio-devel bison cmake redhat-lsb
+            %define distro_buildreq     gcc-c++ gdbm-devel gperf ncurses-devel openldap2-client procps pwdutils readline-devel zlib-devel libaio-devel bison cmake 
             %define distro_requires     aaa_base coreutils grep procps pwdutils
           %else
             %{error:SuSE %{susever} is unsupported}
@@ -202,8 +228,8 @@ Prefix: %{_sysconfdir}
   %define generic_kernel %(uname -r | cut -d. -f1-2)
   %define distro_description            Generic Linux (kernel %{generic_kernel})
   %define distro_releasetag             linux%{generic_kernel}
-  %define distro_buildreq               gcc-c++ gperf ncurses-devel perl readline-devel time zlib-devel libaio-devel bison cmake redhat-lsb
-  %define distro_requires               coreutils grep procps /sbin/chkconfig /usr/sbin/useradd /usr/sbin/groupadd
+  %define distro_buildreq               gcc-c++ gperf ncurses-devel perl readline-devel time zlib-devel libaio-devel bison cmake 
+  %define distro_requires               coreutils grep procps /usr/sbin/useradd /usr/sbin/groupadd
 %endif
 
 # ----------------------------------------------------------------------------
@@ -246,6 +272,10 @@ Vendor:         %{percona_server_vendor}
 Requires:       %{distro_requires} Percona-XtraDB-Cluster-server%{product_suffix} Percona-XtraDB-Cluster-client%{product_suffix} Percona-XtraDB-Cluster-galera-2
 Provides:       mysql-server
 BuildRequires:  %{distro_buildreq} pam-devel openssl-devel
+%if 0%{?systemd}
+BuildRequires:  systemd
+%endif
+Patch0:         mysql-5.5-libmysqlclient-symbols.patch 
 Obsoletes:      Percona-XtraDB-Cluster
 
 # Think about what you use here since the first step is to
@@ -278,12 +308,42 @@ Requires:       %{distro_requires} Percona-XtraDB-Cluster-server%{product_suffix
 %description -n Percona-XtraDB-Cluster-full%{product_suffix}
 This is a meta-package which provides the full suite of Percona XtraDB
 Cluster 55 packages including the debuginfo. Recommended.
+
+%package -n Percona-XtraDB-Cluster%{product_suffix}-g3
+Summary:        Percona XtraDB Cluster - full package with Galera 3
+Group:          Applications/Databases
+Requires:       %{distro_requires} Percona-XtraDB-Cluster-server%{product_suffix} Percona-XtraDB-Cluster-client%{product_suffix} Percona-XtraDB-Cluster-galera-3
+
+%description -n Percona-XtraDB-Cluster%{product_suffix}-g3
+This is a meta-package which provides PXC with galera3.
+
+
+%package -n Percona-XtraDB-Cluster-full%{product_suffix}-g3
+Summary:        Percona XtraDB Cluster - full package with Galera 3
+Group:          Applications/Databases
+Requires:       %{distro_requires} Percona-XtraDB-Cluster-server%{product_suffix} Percona-XtraDB-Cluster-client%{product_suffix} Percona-XtraDB-Cluster-galera-3 Percona-XtraDB-Cluster-garbd-3 Percona-XtraDB-Cluster-test%{product_suffix} Percona-XtraDB-Cluster%{product_suffix}-debuginfo Percona-XtraDB-Cluster-galera-3-debuginfo
+
+%description -n Percona-XtraDB-Cluster-full%{product_suffix}-g3
+This is a meta-package which provides the full suite of Percona XtraDB
+Cluster 55 packages including the debuginfo and Galera3. Recommended.
+
 # ----------------------------------------------------------------------------
 
 %package -n Percona-XtraDB-Cluster-server%{product_suffix}
 Summary:        Percona XtraDB Cluster - server package
 Group:          Applications/Databases
 Requires:       %{distro_requires} Percona-XtraDB-Cluster-client%{product_suffix} Percona-XtraDB-Cluster-galera-25 percona-xtrabackup >= 2.1.6 socat rsync iproute perl-DBI perl-DBD-MySQL lsof
+Requires:       perl(Data::Dumper)
+%if 0%{?systemd}
+Requires(post):   systemd
+Requires(preun):  systemd
+Requires(postun): systemd
+Requires: Percona-XtraDB-Cluster-shared%{product_suffix}
+%else
+Requires(post):   /sbin/chkconfig
+Requires(preun):  /sbin/chkconfig
+Requires(preun):  /sbin/service
+%endif
 Conflicts:	Percona-Server-server-56 Percona-Server-server-55 Percona-Server-server-51 Percona-SQL-server-50 Percona-XtraDB-Cluster-server-56
 Obsoletes:      Percona-XtraDB-Cluster-server
 
@@ -335,6 +395,7 @@ Requires:       Percona-XtraDB-Cluster-client%{product_suffix} perl
 Summary:        Percona XtraDB Cluster - Test suite
 Group:          Applications/Databases
 Provides:       mysql-test
+Requires:       perl(Socket), perl(Time::HiRes), perl(Data::Dumper), perl(Test::More), perl(Env)
 Conflicts:	Percona-Server-test-56 Percona-Server-test-55 Percona-Server-test-51 Percona-XtraDB-Cluster-test-56
 Obsoletes:      Percona-XtraDB-Cluster-test
 AutoReqProv:    no
@@ -387,6 +448,10 @@ Group:          Applications/Databases
 Provides:       mysql-shared >= %{mysql_version} mysql-libs >= %{mysql_version}
 Conflicts:	Percona-Server-shared-55 Percona-XtraDB-Cluster-shared-56
 Obsoletes:      Percona-XtraDB-Cluster-shared
+%if "%rhel" > "6"
+Obsoletes:      mariadb-libs >= 5.5.37
+%endif
+
 
 %description -n Percona-XtraDB-Cluster-shared%{product_suffix}
 Percona XtraDB Cluster is based on the Percona Server database server and
@@ -407,6 +472,9 @@ and applications need to dynamically load and use Percona XtraDB Cluster.
 %prep
 #
 %setup -n %{src_dir}
+%if "%rhel" == "7"
+%patch0 -p1 -F2
+%endif
 #
 ##############################################################################
 %build
@@ -415,8 +483,9 @@ and applications need to dynamically load and use Percona XtraDB Cluster.
 set -uex
 
 BuildHandlerSocket() {
-    cd storage/HandlerSocket-Plugin-for-MySQL
+    cd plugin/HandlerSocket-Plugin-for-MySQL
     echo "Configuring HandlerSocket"
+    ./autogen.sh
     CXX="${HS_CXX:-g++}" \
         MYSQL_CFLAGS="-I $RPM_BUILD_DIR/%{src_dir}/release/include" \
         ./configure --with-mysql-source=$RPM_BUILD_DIR/%{src_dir} \
@@ -425,16 +494,6 @@ BuildHandlerSocket() {
         --libdir=%{_libdir} \
         --prefix=%{_prefix}
     make %{?_smp_mflags}
-    cd -
-}
-
-BuildUDF() {
-    cd UDF
-    CXX="${UDF_CXX:-g++}"\
-        CXXFLAGS="$CXXFLAGS -I$RPM_BUILD_DIR/%{src_dir}/release/include" \
-        ./configure --includedir=$RPM_BUILD_DIR/%{src_dir}/include \
-        --libdir=%{_libdir}/mysql/plugin
-    make %{?_smp_mflags} all
     cd -
 }
 
@@ -532,11 +591,10 @@ mkdir release
            -DMYSQL_SERVER_SUFFIX="%{server_suffix}" \
            -DWITH_PAM=ON
   echo BEGIN_NORMAL_CONFIG ; egrep '^#define' include/config.h ; echo END_NORMAL_CONFIG
-  make %{?_smp_mflags}
+  make %{?_smp_mflags} VERBOSE=1
   cd ../
   d="`pwd`"
   BuildHandlerSocket
-  BuildUDF
   cd "$d"
 )
 
@@ -574,14 +632,12 @@ install -d $RBR%{_mandir}
 install -d $RBR%{_sbindir}
 install -d $RBR%{_libdir}/mysql/plugin
 
+
 (
   cd $MBD/release
   make DESTDIR=$RBR benchdir_root=%{_datadir} install
   d="`pwd`"
-  cd $MBD/storage/HandlerSocket-Plugin-for-MySQL
-  make DESTDIR=$RBR benchdir_root=%{_datadir} install
-  cd "$d"
-  cd $MBD/UDF
+  cd $MBD/plugin/HandlerSocket-Plugin-for-MySQL
   make DESTDIR=$RBR benchdir_root=%{_datadir} install
   cd "$d"
 )
@@ -599,7 +655,17 @@ install -d $RBR%{_libdir}/mysql/plugin
 
 # Install logrotate and autostart
 install -m 644 $MBD/release/support-files/mysql-log-rotate $RBR%{_sysconfdir}/logrotate.d/mysql
+%if 0%{?systemd}
+install -D -m 0755 $MBD/build-ps/rpm/mysql-systemd $RBR%{_bindir}/mysql-systemd
+install -D -m 0644 $MBD/build-ps/rpm/mysql.service $RBR%{_unitdir}/mysql.service
+install -D -m 0644 $MBD/build-ps/rpm/mysql@.service $RBR%{_unitdir}/mysql@.service
+install -D -m 0644 $MBD/build-ps/rpm/mysql.bootstrap $RBR%{_sysconfdir}/sysconfig/mysql.bootstrap
+install -D -m 0644 $MBD/build-ps/rpm/mysql.conf $RBR%{_tmpfilesdir}/mysql.conf
+install -D -m 0644 $MBD/build-ps/rpm/my.cnf $RBR%{_sysconfdir}/my.cnf
+install -d $RBR%{_sysconfdir}/my.cnf.d
+%else
 install -m 755 $MBD/release/support-files/mysql.server $RBR%{_sysconfdir}/init.d/mysql
+%endif
 
 install -d $RBR%{_sysconfdir}/ld.so.conf.d
 echo %{_libdir} > $RBR%{_sysconfdir}/ld.so.conf.d/percona-xtradb-cluster-shared-%{version}-%{_arch}.conf
@@ -609,7 +675,9 @@ rm -f $RBR%{_libdir}/libmysqlclient*.so.18
 
 # Create a symlink "rcmysql", pointing to the init.script. SuSE users
 # will appreciate that, as all services usually offer this.
+%if 0%{?systemd} == 0
 ln -s %{_sysconfdir}/init.d/mysql $RBR%{_sbindir}/rcmysql
+%endif
 
 # Create a wsrep_sst_rsync_wan symlink.
 install -d $RBR%{_bindir}
@@ -627,16 +695,18 @@ install -m 644 "%{malloc_lib_source}" \
   "$RBR%{_libdir}/mysql/%{malloc_lib_target}"
 %endif
 
-# Remove man pages we explicitly do not want to package, avoids 'unpackaged
+# Remove files we explicitly do not want to package, avoids 'unpackaged
 # files' warning.
 rm -f $RBR%{_mandir}/man1/make_win_bin_dist.1*
+%if 0%{?systemd}
+rm -rf $RBR%{_sysconfdir}/init.d/mysql
+%endif
 
 ##############################################################################
 #  Post processing actions, i.e. when installed
 ##############################################################################
 
 %pre -n Percona-XtraDB-Cluster-server%{product_suffix}
-
 # ATTENTION: Parts of this are duplicated in the "triggerpostun" !
 
 # There are users who deviate from the default file system layout.
@@ -764,10 +834,10 @@ if [ -d $mysql_datadir ] ; then
 	echo "'pre' step running at `date`"          >> $STATUS_FILE
 	echo                                         >> $STATUS_FILE
 	echo "ERR file(s):"                          >> $STATUS_FILE
-	ls -ltr $mysql_datadir/*.err                 >> $STATUS_FILE
+	ls -ltr $mysql_datadir/*.err 2>/dev/null     >> $STATUS_FILE
 	echo                                         >> $STATUS_FILE
 	echo "Latest 'Version' line in latest file:" >> $STATUS_FILE
-	grep '^Version' `ls -tr $mysql_datadir/*.err | tail -1` | \
+	grep '^Version' `ls -tr $mysql_datadir/*.err 2>/dev/null | tail -1` | \
 		tail -1                              >> $STATUS_FILE
 	echo                                         >> $STATUS_FILE
 
@@ -792,6 +862,7 @@ fi
 # Note we *could* make that depend on $SERVER_TO_START, but we rather don't,
 # so a "stop" is attempted even if there is no PID file.
 # (Maybe the "stop" doesn't work then, but we might fix that in itself.)
+
 if [ -x %{_sysconfdir}/init.d/mysql ] ; then
         %{_sysconfdir}/init.d/mysql stop > /dev/null 2>&1
         echo "Giving mysqld 5 seconds to exit nicely"
@@ -803,6 +874,11 @@ fi
 if [ X${PERCONA_DEBUG} == X1 ]; then
         set -x
 fi
+
+%if 0%{?systemd}
+  %systemd_post mysql
+%endif
+
 # ATTENTION: Parts of this are duplicated in the "triggerpostun" !
 
 # There are users who deviate from the default file system layout.
@@ -825,6 +901,7 @@ else
 fi
 
 if [ $1 -eq 1 ]; then
+
 # ----------------------------------------------------------------------
 # Create data directory if needed, check whether upgrade or install
 # ----------------------------------------------------------------------
@@ -859,6 +936,11 @@ usermod -g %{mysqld_group} %{mysqld_user} 2> /dev/null || true
     then
         %{_bindir}/mysql_install_db --rpm --user=%{mysqld_user}
     fi
+
+%if 0%{?systemd}
+  %tmpfiles_create mysql.conf
+%endif
+
 fi 
 
 # ----------------------------------------------------------------------
@@ -867,12 +949,18 @@ fi
 # NOTE: This still needs to be debated. Should we check whether these links
 # for the other run levels exist(ed) before the upgrade?
 # use chkconfig on Enterprise Linux and newer SuSE releases
+%if 0%{?systemd}
+
+# Do NOTHING for PXC
+
+%else
 if [ -x /sbin/chkconfig ] ; then
         /sbin/chkconfig --add mysql
 # use insserv for older SuSE Linux versions
 elif [ -x /sbin/insserv ] ; then
         /sbin/insserv %{_sysconfdir}/init.d/mysql
 fi
+%endif
 
 # ----------------------------------------------------------------------
 # Upgrade databases if needed would go here - but it cannot be automated yet
@@ -897,7 +985,7 @@ if test -x /usr/sbin/selinuxenabled && test -r /selinux/enforce
 then
     if /usr/sbin/selinuxenabled && "x$(cat /selinux/enforce)" == "x1"
     then
-        echo "WARNING. SELinux is ebabled. For proper work of a cluster it is recommended"
+        echo "WARNING. SELinux is enabled. For proper work of a cluster it is recommended"
         echo "to disable it. To do so, run (for example):"
         echo "  echo 0 > /selinux/enforce"
         echo
@@ -913,12 +1001,18 @@ fi
 
 # Was the server running before the upgrade? If so, restart the new one.
 if [ "$SERVER_TO_START" = "true" ] ; then
+%if 0%{?systemd}
+
+# Check %postun
+
+%else
 	# Restart in the same way that mysqld will be started normally.
 	if [ -x %{_sysconfdir}/init.d/mysql ] ; then
 		%{_sysconfdir}/init.d/mysql start
-		echo "Giving mysqld 5 seconds to start"
-		sleep 5
 	fi
+%endif
+  echo "Giving mysqld 5 seconds to start"
+  sleep 5
 fi
 
 echo "Percona XtraDB Cluster is distributed with several useful UDFs from Percona Toolkit."
@@ -953,20 +1047,29 @@ mv -f  $STATUS_FILE ${STATUS_FILE}-LAST  # for "triggerpostun"
 #   Remove last version of package   0 "
 #
 #  http://docs.fedoraproject.org/en-US/Fedora_Draft_Documentation/0.1/html/RPM_Guide/ch09s04s05.html
+
+%if 0%{?systemd}
+    serv=$(systemctl list-units | grep 'mysql@.*.service' | grep 'active running' | head -1 | awk '{ print $1 }')
+    if [[ -n ${serv:-} ]] && systemctl is-active $serv;then
+        %systemd_preun $serv
+    else
+        %systemd_preun mysql
+    fi
+%endif
  
 if [ $1 = 0 ] ; then
-        # Stop MySQL before uninstalling it
-        if [ -x %{_sysconfdir}/init.d/mysql ] ; then
-                %{_sysconfdir}/init.d/mysql stop > /dev/null
-                # Remove autostart of MySQL
-                # use chkconfig on Enterprise Linux and newer SuSE releases
-                if [ -x /sbin/chkconfig ] ; then
-                        /sbin/chkconfig --del mysql
-                # For older SuSE Linux versions
-                elif [ -x /sbin/insserv ] ; then
-                        /sbin/insserv -r %{_sysconfdir}/init.d/mysql
-                fi
-        fi
+    # Stop MySQL before uninstalling it
+    if [ -x %{_sysconfdir}/init.d/mysql ] ; then
+            %{_sysconfdir}/init.d/mysql stop > /dev/null
+            # Remove autostart of MySQL
+            # use chkconfig on Enterprise Linux and newer SuSE releases
+            if [ -x /sbin/chkconfig ] ; then
+                    /sbin/chkconfig --del mysql
+            # For older SuSE Linux versions
+            elif [ -x /sbin/insserv ] ; then
+                    /sbin/insserv -r %{_sysconfdir}/init.d/mysql
+            fi
+    fi
 fi
 
 # We do not remove the mysql user since it may still own a lot of
@@ -1009,21 +1112,35 @@ else
 fi
 echo "Analyzed: SERVER_TO_START=$SERVER_TO_START"
 
+%if 0%{?systemd}
+if [ -x %{_bindir}/systemctl ] ; then
+	%{_bindir}/systemctl enable mysql >/dev/null 2>&1
+fi
+%else
 if [ -x /sbin/chkconfig ] ; then
         /sbin/chkconfig --add mysql
 # use insserv for older SuSE Linux versions
 elif [ -x /sbin/insserv ] ; then
         /sbin/insserv %{_sysconfdir}/init.d/mysql
 fi
+%endif
 
 # Was the server running before the upgrade? If so, restart the new one.
 if [ "$SERVER_TO_START" = "true" ] ; then
-	# Restart in the same way that mysqld will be started normally.
+# Restart in the same way that mysqld will be started normally.
+%if 0%{?systemd}
+	if [ -x %{_bindir}/systemctl ] ; then 
+               	%{_bindir}/systemctl start mysql
+                echo "Giving mysqld 5 seconds to start"
+                sleep 5
+        fi
+%else
 	if [ -x %{_sysconfdir}/init.d/mysql ] ; then
 		%{_sysconfdir}/init.d/mysql start
 		echo "Giving mysqld 5 seconds to start"
 		sleep 5
 	fi
+%endif
 fi
 
 echo "Trigger 'postun --community' finished at `date`"        >> $STATUS_HISTORY
@@ -1047,6 +1164,10 @@ echo "====="                                     >> $STATUS_HISTORY
 
 # Empty section for metapackage
 %files -n Percona-XtraDB-Cluster-full%{product_suffix}
+
+%files -n Percona-XtraDB-Cluster-full%{product_suffix}-g3
+
+%files -n Percona-XtraDB-Cluster%{product_suffix}-g3
 
 %files -n Percona-XtraDB-Cluster-server%{product_suffix}
 %defattr(-,root,root,0755)
@@ -1089,6 +1210,9 @@ echo "====="                                     >> $STATUS_HISTORY
 %doc %attr(644, root, man) %{_mandir}/man1/resolve_stack_dump.1*
 %doc %attr(644, root, man) %{_mandir}/man1/resolveip.1*
 %doc %attr(644, root, man) %{_mandir}/man1/mysql_plugin.1*
+%if 0%{?systemd}
+%attr(755, root, root) %{_bindir}/mysql-systemd
+%endif
 
 %attr(755, root, root) %{_bindir}/clustercheck
 %attr(755, root, root) %{_bindir}/pyclustercheck
@@ -1125,13 +1249,15 @@ echo "====="                                     >> $STATUS_HISTORY
 
 %attr(755, root, root) %{_sbindir}/mysqld
 %attr(755, root, root) %{_sbindir}/mysqld-debug
+%if 0%{?systemd} == 0
 %attr(755, root, root) %{_sbindir}/rcmysql
+%endif
 
 %if "%rhel" == "5"
     %attr(755, root, root) %{_datadir}/percona-xtradb-cluster/
 %endif
 
-%if "%rhel" == "6"
+%if "%rhel" >= "6"
     %attr(755, root, root) %{_datarootdir}/percona-xtradb-cluster/
 %endif 
 
@@ -1150,8 +1276,6 @@ echo "====="                                     >> $STATUS_HISTORY
 %attr(755, root, root) %{_libdir}/mysql/plugin/auth_pam.so
 %attr(755, root, root) %{_libdir}/mysql/plugin/auth_pam_compat.so
 %attr(755, root, root) %{_libdir}/mysql/plugin/dialog.so
-%attr(755, root, root) %{_libdir}/mysql/plugin/scalability_metrics.so
-%attr(755, root, root) %{_libdir}/mysql/plugin/audit_log.so
 %attr(755, root, root) %{_libdir}/mysql/plugin/debug/adt_null.so
 %attr(755, root, root) %{_libdir}/mysql/plugin/debug/libdaemon_example.so
 %attr(755, root, root) %{_libdir}/mysql/plugin/debug/mypluglib.so
@@ -1166,8 +1290,6 @@ echo "====="                                     >> $STATUS_HISTORY
 %attr(755, root, root) %{_libdir}/mysql/plugin/debug/auth_pam.so
 %attr(755, root, root) %{_libdir}/mysql/plugin/debug/auth_pam_compat.so
 %attr(755, root, root) %{_libdir}/mysql/plugin/debug/dialog.so
-%attr(755, root, root) %{_libdir}/mysql/plugin/debug/scalability_metrics.so
-%attr(755, root, root) %{_libdir}/mysql/plugin/debug/audit_log.so
 # HandlerSocket files
 %attr(755, root, root) %{_libdir}/mysql/plugin/handlersocket.a
 %attr(755, root, root) %{_libdir}/mysql/plugin/handlersocket.la
@@ -1176,14 +1298,18 @@ echo "====="                                     >> $STATUS_HISTORY
 %attr(755, root, root) %{_libdir}/mysql/plugin/handlersocket.so.0.0.0
 # UDF files
 %attr(755, root, root) %{_libdir}/mysql/plugin/libfnv1a_udf.so
-%attr(755, root, root) %{_libdir}/mysql/plugin/libfnv1a_udf.so.0
-%attr(755, root, root) %{_libdir}/mysql/plugin/libfnv1a_udf.so.0.0.0
 %attr(755, root, root) %{_libdir}/mysql/plugin/libfnv_udf.so
-%attr(755, root, root) %{_libdir}/mysql/plugin/libfnv_udf.so.0
-%attr(755, root, root) %{_libdir}/mysql/plugin/libfnv_udf.so.0.0.0
 %attr(755, root, root) %{_libdir}/mysql/plugin/libmurmur_udf.so
-%attr(755, root, root) %{_libdir}/mysql/plugin/libmurmur_udf.so.0
-%attr(755, root, root) %{_libdir}/mysql/plugin/libmurmur_udf.so.0.0.0
+# debug
+%attr(755, root, root) %{_libdir}/mysql/plugin/debug/libfnv1a_udf.so
+%attr(755, root, root) %{_libdir}/mysql/plugin/debug/libfnv_udf.so
+%attr(755, root, root) %{_libdir}/mysql/plugin/debug/libmurmur_udf.so
+
+# Audit Log and Scalability Metrics files
+%attr(755, root, root) %{_libdir}/mysql/plugin/audit_log.so
+%attr(755, root, root) %{_libdir}/mysql/plugin/debug/audit_log.so
+%attr(755, root, root) %{_libdir}/mysql/plugin/debug/scalability_metrics.so
+%attr(755, root, root) %{_libdir}/mysql/plugin/scalability_metrics.so
 
 %if %{WITH_TCMALLOC}
 %attr(755, root, root) %{_libdir}/mysql/%{malloc_lib_target}
@@ -1191,7 +1317,15 @@ echo "====="                                     >> $STATUS_HISTORY
 
 %attr(644, root, root) %config(noreplace,missingok) %{_sysconfdir}/logrotate.d/mysql
 %attr(644, root, root) %config(noreplace,missingok) %{_sysconfdir}/xinetd.d/mysqlchk
+%if 0%{?systemd}
+%attr(644, root, root) %{_unitdir}/mysql.service
+%attr(644, root, root) %{_unitdir}/mysql@.service
+%attr(644, root, root) %config(noreplace,missingok) %{_sysconfdir}/sysconfig/mysql.bootstrap
+%attr(644, root, root) %{_tmpfilesdir}/mysql.conf
+%attr(755, root, root) %{_bindir}/mysql-systemd
+%else
 %attr(755, root, root) %{_sysconfdir}/init.d/mysql
+%endif
 
 # ----------------------------------------------------------------------------
 %files -n Percona-XtraDB-Cluster-client%{product_suffix}
@@ -1245,26 +1379,33 @@ echo "====="                                     >> $STATUS_HISTORY
 %{_libdir}/libhsclient.a
 %{_libdir}/libhsclient.la
 
-# Percona Toolkit UDF libs
-%{_libdir}/mysql/plugin/libfnv1a_udf.a
-%{_libdir}/mysql/plugin/libfnv1a_udf.la
-%{_libdir}/mysql/plugin/libfnv_udf.a
-%{_libdir}/mysql/plugin/libfnv_udf.la
-%{_libdir}/mysql/plugin/libmurmur_udf.a
-%{_libdir}/mysql/plugin/libmurmur_udf.la
-
 # ----------------------------------------------------------------------------
 %files -n Percona-XtraDB-Cluster-shared%{product_suffix}
 %defattr(-, root, root, 0755)
 %{_sysconfdir}/ld.so.conf.d/percona-xtradb-cluster-shared-%{version}-%{_arch}.conf
 # Shared libraries (omit for architectures that don't support them)
 %{_libdir}/libmysqlclient*.so*
+%if 0%{?systemd}
+%{_sysconfdir}/my.cnf.d
+%attr(644, root, root) %config(noreplace) %{_sysconfdir}/my.cnf
+%endif
 
 %post -n Percona-XtraDB-Cluster-shared%{product_suffix}
 /sbin/ldconfig
 
 %postun -n Percona-XtraDB-Cluster-shared%{product_suffix}
 /sbin/ldconfig
+
+%postun -n Percona-XtraDB-Cluster-server%{product_suffix}
+
+%if 0%{?systemd}
+serv=$(systemctl list-units | grep 'mysql@.*.service' | grep 'active running' | head -1 | awk '{ print $1 }')
+if [[ -n ${serv:-} ]] && systemctl is-active $serv;then
+    %systemd_postun_with_restart $serv
+else
+    %systemd_postun_with_restart mysql
+fi
+%endif
 
 # ----------------------------------------------------------------------------
 %files -n Percona-XtraDB-Cluster-test%{product_suffix}
@@ -1280,6 +1421,15 @@ echo "====="                                     >> $STATUS_HISTORY
 %doc %attr(644, root, man) %{_mandir}/man1/mysqltest_embedded.1*
 
 %changelog
+* Sat Aug 30 2014 Raghavendra Prabhu <raghavendra.prabhu@percona.com>
+
+- Add packaging for systemd and related changes.
+
+* Mon May 26 2014 Tomislav Plavcic <tomislav.plavcic@percona.com>
+
+- UDF and HandlerSocket moved to plugin
+- Fixed version reported in mysql client
+
 * Fri Apr 25 2014 Tomislav Plavcic <tomislav.plavcic@percona.com>
 
 - Added Audit Log and Scalability Metrics plugin binaries

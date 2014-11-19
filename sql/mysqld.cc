@@ -698,7 +698,7 @@ ulonglong utility_user_privileges= 0;
 pthread_key(MEM_ROOT**,THR_MALLOC);
 pthread_key(THD*, THR_THD);
 mysql_mutex_t LOCK_thread_created;
-mysql_mutex_t LOCK_thread_count;
+mysql_mutex_t LOCK_thread_count, LOCK_thd_remove;
 mysql_mutex_t
   LOCK_status, LOCK_error_log, LOCK_uuid_generator,
   LOCK_delayed_insert, LOCK_delayed_status, LOCK_delayed_create,
@@ -1772,6 +1772,7 @@ static void clean_up_mutexes()
   mysql_mutex_destroy(&LOCK_prepared_stmt_count);
   mysql_mutex_destroy(&LOCK_error_messages);
   mysql_cond_destroy(&COND_thread_count);
+  mysql_mutex_destroy(&LOCK_thd_remove);
   mysql_cond_destroy(&COND_thread_cache);
   mysql_cond_destroy(&COND_flush_thread_cache);
   mysql_cond_destroy(&COND_manager);
@@ -2232,6 +2233,10 @@ void close_connection(THD *thd, uint sql_errno)
 
   thd->disconnect();
 
+#ifdef HAVE_OPENSSL
+  ERR_remove_state(0);
+#endif
+
   MYSQL_CONNECTION_DONE((int) sql_errno, thd->thread_id);
 
   if (MYSQL_CONNECTION_DONE_ENABLED())
@@ -2282,9 +2287,19 @@ void thd_cleanup(THD *thd)
 
 void dec_connection_count(THD *thd)
 {
-  mysql_mutex_lock(&LOCK_connection_count);
-  (*thd->scheduler->connection_count)--;
-  mysql_mutex_unlock(&LOCK_connection_count);
+#ifdef WITH_WSREP
+  /*
+    Do not decrement when its wsrep system thread. wsrep_applier is set for
+    applier as well as rollbacker threads.
+  */
+  if (!thd->wsrep_applier)
+#endif /* WITH_WSREP */
+  {
+    DBUG_ASSERT(*thd->scheduler->connection_count > 0);
+    mysql_mutex_lock(&LOCK_connection_count);
+    (*thd->scheduler->connection_count)--;
+    mysql_mutex_unlock(&LOCK_connection_count);
+  }
 }
 
 
@@ -2298,6 +2313,8 @@ void dec_connection_count(THD *thd)
 
 void delete_thd(THD *thd)
 {
+  mysql_mutex_assert_owner(&LOCK_thread_count);
+  mysql_mutex_assert_owner(&LOCK_thd_remove);
   thread_count--;
   delete thd;
 }
@@ -2311,7 +2328,7 @@ void delete_thd(THD *thd)
     thd		 Thread handler
 
   NOTES
-    LOCK_thread_count is locked and left locked
+    LOCK_thread_count, LOCK_thd_remove are locked and left locked
 */
 
 void unlink_thd(THD *thd)
@@ -2321,6 +2338,7 @@ void unlink_thd(THD *thd)
 
   thd_cleanup(thd);
   dec_connection_count(thd);
+  mysql_mutex_lock(&LOCK_thd_remove);
   mysql_mutex_lock(&LOCK_thread_count);
   /*
     Used by binlog_reset_master.  It would be cleaner to use
@@ -2432,11 +2450,14 @@ static bool cache_thread()
 bool one_thread_per_connection_end(THD *thd, bool put_in_cache)
 {
   DBUG_ENTER("one_thread_per_connection_end");
-  const bool not_applier = !thd->wsrep_applier;
-  unlink_thd(thd);
 #ifdef WITH_WSREP
-  if (put_in_cache && not_applier)
+  const bool wsrep_applier(thd->wsrep_applier);
+  unlink_thd(thd);
+  mysql_mutex_unlock(&LOCK_thd_remove);
+  if (put_in_cache && !wsrep_applier)
 #else
+  unlink_thd(thd);
+  mysql_mutex_unlock(&LOCK_thd_remove);
   if (put_in_cache)
 #endif /* WITH_WSREP */
     put_in_cache= cache_thread();
@@ -3763,6 +3784,8 @@ static int init_thread_environment()
   mysql_mutex_init(key_LOCK_thread_created, &LOCK_thread_created, MY_MUTEX_INIT_FAST);
   mysql_mutex_init(key_LOCK_thread_count, &LOCK_thread_count, MY_MUTEX_INIT_FAST);
   mysql_mutex_init(key_LOCK_status, &LOCK_status, MY_MUTEX_INIT_FAST);
+  mysql_mutex_init(key_LOCK_thd_remove,
+                   &LOCK_thd_remove, MY_MUTEX_INIT_FAST);
   mysql_mutex_init(key_LOCK_delayed_insert,
                    &LOCK_delayed_insert, MY_MUTEX_INIT_FAST);
   mysql_mutex_init(key_LOCK_delayed_status,
@@ -3944,6 +3967,7 @@ static void init_ssl()
     ssl_acceptor_fd= new_VioSSLAcceptorFd(opt_ssl_key, opt_ssl_cert,
 					  opt_ssl_ca, opt_ssl_capath,
 					  opt_ssl_cipher, &error);
+    ERR_remove_state(0);
     DBUG_PRINT("info",("ssl_acceptor_fd: 0x%lx", (long) ssl_acceptor_fd));
     if (!ssl_acceptor_fd)
     {
@@ -4523,11 +4547,19 @@ pthread_handler_t start_wsrep_THD(void *arg)
 
   mysql_thread_set_psi_id(thd->thread_id);
   thd->thr_create_utime= my_micro_time();
-  if (MYSQL_CALLBACK_ELSE(thd->scheduler, init_new_connection_thread, (), 0))
+
+  /*
+     Don't use thd->scheduler methods to initialize and destroy wsrep threads,
+     as these threads are not managed by the scheduler specified with the
+     thread_handling option. Instead execute initialization/destruction code
+     directly similar to the replication slave threads.
+  */
+
+  if (init_new_connection_handler_thread())
   {
     close_connection(thd, ER_OUT_OF_RESOURCES);
     statistic_increment(aborted_connects,&LOCK_status);
-    MYSQL_CALLBACK(thd->scheduler, end_thread, (thd, 0));
+    one_thread_per_connection_end(thd, 0);
 
     return(NULL);
   }
@@ -4550,7 +4582,7 @@ pthread_handler_t start_wsrep_THD(void *arg)
   {
     close_connection(thd, ER_OUT_OF_RESOURCES);
     statistic_increment(aborted_connects,&LOCK_status);
-    MYSQL_CALLBACK(thd->scheduler, end_thread, (thd, 0));
+    one_thread_per_connection_end(thd, 0);
     delete thd;
 
     return(NULL);
@@ -4565,10 +4597,6 @@ pthread_handler_t start_wsrep_THD(void *arg)
   thd->command= COM_SLEEP;
   thd->set_time();
   thd->init_for_queries();
-
-  mysql_mutex_lock(&LOCK_connection_count);
-  ++connection_count;
-  mysql_mutex_unlock(&LOCK_connection_count);
 
   mysql_mutex_lock(&LOCK_thread_count);
   wsrep_running_threads++;
@@ -4592,23 +4620,13 @@ pthread_handler_t start_wsrep_THD(void *arg)
   if (plugins_are_initialized)
   {
     net_end(&thd->net);
-    MYSQL_CALLBACK(thd->scheduler, end_thread, (thd, 1));
+    one_thread_per_connection_end(thd, 0);
   }
   else
   {
-    // TODO: lightweight cleanup to get rid of:
-    // 'Error in my_thread_global_end(): 2 threads didn't exit'
-    // at server shutdown
+    my_thread_end();
   }
 
-  if (thread_handling > SCHEDULER_ONE_THREAD_PER_CONNECTION)
-  {
-    mysql_mutex_lock(&LOCK_thread_count);
-    delete thd;
-    thread_count--;
-    mysql_mutex_unlock(&LOCK_thread_count);
-  }
-  my_thread_end();
   return(NULL);
 }
 
@@ -4691,7 +4709,8 @@ static bool have_client_connections()
 static void wsrep_close_thread(THD *thd)
 {
   thd->killed= THD::KILL_CONNECTION;
-  MYSQL_CALLBACK(thd->scheduler, post_kill_notification, (thd));
+  if (!thd->wsrep_applier)
+    MYSQL_CALLBACK(thd->scheduler, post_kill_notification, (thd));
   if (thd->mysys_var)
   {
     thd->mysys_var->abort=1;
@@ -4878,14 +4897,7 @@ void wsrep_wait_appliers_close(THD *thd)
   // This gotta be fixed in a more elegant manner if we gonna have arbitrary
   // number of non-applier wsrep threads.
   {
-    if (thread_handling > SCHEDULER_ONE_THREAD_PER_CONNECTION)
-    {
-      mysql_mutex_unlock(&LOCK_thread_count);
-      my_sleep(100);
-      mysql_mutex_lock(&LOCK_thread_count);
-    }
-    else
-      mysql_cond_wait(&COND_thread_count,&LOCK_thread_count);
+    mysql_cond_wait(&COND_thread_count,&LOCK_thread_count);
     DBUG_PRINT("quit",("One applier died (count=%u)",thread_count));
   }
   mysql_mutex_unlock(&LOCK_thread_count);
@@ -4895,14 +4907,7 @@ void wsrep_wait_appliers_close(THD *thd)
   mysql_mutex_lock(&LOCK_thread_count);
   while (wsrep_running_threads > 0)
   {
-   if (thread_handling > SCHEDULER_ONE_THREAD_PER_CONNECTION)
-    {
-      mysql_mutex_unlock(&LOCK_thread_count);
-      my_sleep(100);
-      mysql_mutex_lock(&LOCK_thread_count);
-    }
-    else
-      mysql_cond_wait(&COND_thread_count,&LOCK_thread_count);
+    mysql_cond_wait(&COND_thread_count,&LOCK_thread_count);
     DBUG_PRINT("quit",("One thread died (count=%u)",thread_count));
   }
   mysql_mutex_unlock(&LOCK_thread_count);
@@ -5987,9 +5992,11 @@ void create_thread_to_handle_connection(THD *thd)
                   ER_THD(thd, ER_CANT_CREATE_THREAD), error);
       net_send_error(thd, ER_CANT_CREATE_THREAD, error_message_buff, NULL);
       close_connection(thd);
+      mysql_mutex_lock(&LOCK_thd_remove);
       mysql_mutex_lock(&LOCK_thread_count);
       delete thd;
       mysql_mutex_unlock(&LOCK_thread_count);
+      mysql_mutex_unlock(&LOCK_thd_remove);
       return;
       /* purecov: end */
     }
@@ -7642,6 +7649,7 @@ SHOW_VAR status_vars[]= {
   {"wsrep_provider_name",      (char*) &wsrep_provider_name,     SHOW_CHAR_PTR},
   {"wsrep_provider_version",   (char*) &wsrep_provider_version,  SHOW_CHAR_PTR},
   {"wsrep_provider_vendor",    (char*) &wsrep_provider_vendor,   SHOW_CHAR_PTR},
+  {"wsrep_thread_count",       (char*) &wsrep_running_threads,   SHOW_LONG_NOFLUSH},
   {"wsrep",                    (char*) &wsrep_show_status,       SHOW_FUNC},
 #endif
   {NullS, NullS, SHOW_LONG}
@@ -8404,6 +8412,31 @@ static int get_options(int *argc_ptr, char ***argv_ptr)
   else
     global_system_variables.option_bits&= ~OPTION_BIG_SELECTS;
 
+#ifdef WITH_WSREP
+  if (global_system_variables.wsrep_causal_reads) {
+      WSREP_WARN("option --wsrep-casual-reads is deprecated");
+      if (!(global_system_variables.wsrep_sync_wait &
+            WSREP_SYNC_WAIT_BEFORE_READ)) {
+          WSREP_WARN("--wsrep-casual-reads=ON takes precedence over --wsrep-sync-wait=%u. "
+                     "WSREP_SYNC_WAIT_BEFORE_READ is on",
+                     global_system_variables.wsrep_sync_wait);
+          global_system_variables.wsrep_sync_wait |= WSREP_SYNC_WAIT_BEFORE_READ;
+      } else {
+          // they are turned on both.
+      }
+  } else {
+      if (global_system_variables.wsrep_sync_wait &
+          WSREP_SYNC_WAIT_BEFORE_READ) {
+          WSREP_WARN("--wsrep-sync-wait=%lu takes precedence over --wsrep-causal-reads=OFF. "
+                     "WSREP_SYNC_WAIT_BEFORE_READ is on",
+                     global_system_variables.wsrep_sync_wait);
+          global_system_variables.wsrep_causal_reads = 1;
+      } else {
+          // they are turned off both.
+      }
+  }
+#endif // WITH_WSREP
+
   // Synchronize @@global.autocommit on --autocommit
   const ulonglong turn_bit_on= opt_autocommit ?
     OPTION_AUTOCOMMIT : OPTION_NOT_AUTOCOMMIT;
@@ -8913,6 +8946,7 @@ PSI_mutex_key key_LOCK_wsrep_rollback, key_LOCK_wsrep_thd,
   key_LOCK_wsrep_sst_thread, key_LOCK_wsrep_sst_init, 
   key_LOCK_wsrep_slave_threads, key_LOCK_wsrep_desync;
 #endif
+PSI_mutex_key key_LOCK_thd_remove;
 PSI_mutex_key key_RELAYLOG_LOCK_index;
 PSI_mutex_key key_LOCK_wakeup_ready, key_LOCK_group_commit_queue, key_LOCK_commit_ordered;
 PSI_mutex_key key_LOCK_thread_created;
@@ -8992,7 +9026,8 @@ static PSI_mutex_info all_server_mutexes[]=
   { &key_LOCK_wsrep_desync, "LOCK_wsrep_desync", PSI_FLAG_GLOBAL},
 #endif
   { &key_PARTITION_LOCK_auto_inc, "HA_DATA_PARTITION::LOCK_auto_inc", 0},
-  { &key_LOCK_thread_created, "LOCK_thread_created", PSI_FLAG_GLOBAL }
+  { &key_LOCK_thread_created, "LOCK_thread_created", PSI_FLAG_GLOBAL },
+  { &key_LOCK_thd_remove, "LOCK_thd_remove", PSI_FLAG_GLOBAL}
 };
 
 PSI_rwlock_key key_rwlock_LOCK_grant, key_rwlock_LOCK_logger,

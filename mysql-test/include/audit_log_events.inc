@@ -2,7 +2,9 @@
 
 CREATE TABLE t1 (c1 INT, c2 CHAR(20));
 --error ER_TABLE_EXISTS_ERROR
-CREATE TABLE t1 (c1 INT, c2 CHAR(20));
+CREATE TABLE t1
+             (c1 INT,
+              c2 CHAR(20));
 INSERT INTO t1 VALUES (1,'a'),(2,'b'),(3,'c');
 SELECT * FROM t1;
 --error ER_NO_SUCH_TABLE
@@ -50,4 +52,5 @@ drop database sa_db;
 connection default;
 create user 'jeffrey'@'localhost' IDENTIFIED BY 'mypass';
 drop user 'jeffrey'@'localhost';
+select '&;&&&""""<><<>>>>';
 disconnect con1;

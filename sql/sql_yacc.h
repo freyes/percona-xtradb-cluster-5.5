@@ -1247,7 +1247,7 @@ typedef union YYSTYPE
 {
 
 /* Line 2068 of yacc.c  */
-#line 735 "/home/jenkins/workspace/percona-xtradb-cluster-5.5-source-tarball/sql/sql_yacc.yy"
+#line 731 "/home/jenkins/workspace/percona-xtradb-cluster-5.5-source-tarball/sql/sql_yacc.yy"
 
   int  num;
   ulong ulong_num;
