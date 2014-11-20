@@ -1,3 +1,9 @@
+percona-xtradb-cluster-5.5 (5.5.39-36.0-3) UNRELEASED; urgency=medium
+
+  * New upstream release (Closes: #770510)
+
+ --  <felipe.reyes@canonical.com>  Wed, 19 Nov 2014 18:23:20 -0300
+
 percona-xtradb-cluster-5.5 (5.5.37-25.10+dfsg-2) unstable; urgency=medium
 
   [ Américo Monteiro ]

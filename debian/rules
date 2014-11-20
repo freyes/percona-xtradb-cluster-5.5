@@ -52,7 +52,7 @@ override_dh_auto_build:
 
 	# Build HandlerSocket
 	echo "Configuring HandlerSocket"
-	cd storage/HandlerSocket-Plugin-for-MySQL && \
+	cd plugin/HandlerSocket-Plugin-for-MySQL && \
 	CXX="$${HS_CXX:-g++}" CXXFLAGS="$(CXXFLAGS) -I$(CURDIR)/release/include" \
 		./configure --with-mysql-source=$(CURDIR) \
 			--with-mysql-bindir=$(CURDIR)/release/scripts \
@@ -61,20 +61,9 @@ override_dh_auto_build:
 			--prefix=$(prefix) && \
 	make $(MAKE_JFLAG)
 
-	# Build UDF
-	cd UDF && \
-	CXX="$${UDF_CXX:-g++}" CXXFLAGS="$(CXXFLAGS) -I$(CURDIR)/release/include" \
-		./configure --includedir=$(CURDIR)/include \
-			--libdir=$(prefix)/lib/mysql/plugin && \
-	make $(MAKE_JFLAG)
-
 override_dh_auto_install:
 	cd $(builddir) && make DESTDIR=$(TMP) install
-	cd storage/HandlerSocket-Plugin-for-MySQL && make DESTDIR=$(TMP) install
-	cd UDF && make DESTDIR=$(TMP) install
+	cd plugin/HandlerSocket-Plugin-for-MySQL && make DESTDIR=$(TMP) install
 
 override_dh_installinit:
 	dh_installinit --name=mysql --error-handler=:
-
-override_dh_clean:
-	dh_clean -XUDF
